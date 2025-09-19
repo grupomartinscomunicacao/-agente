@@ -1,0 +1,309 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Revisar Anamnese - {{ object.cidadao.nome }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .contexto-ia {
+        background: #e8f4fd;
+        border: 1px solid #b3d9ff;
+        border-radius: 0.375rem;
+        padding: 1rem;
+    }
+    
+    .dados-originais {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        padding: 1rem;
+    }
+    
+    .revisao-section {
+        background: #fff9e6;
+        border: 1px solid #ffeaa7;
+        border-radius: 0.375rem;
+        padding: 1rem;
+    }
+    
+    .risco-badge {
+        font-size: 1rem;
+        padding: 0.5rem 1rem;
+    }
+    
+    .condicao-previa {
+        background: #e8f5e8;
+        border-left: 3px solid #28a745;
+        padding: 0.5rem;
+        margin-bottom: 0.25rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1><i class="fas fa-user-md me-2"></i>Revisar Anamnese</h1>
+                <a href="{% url 'dashboard:anamnese_detail' object.pk %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-eye me-1"></i>Ver Detalhes
+                </a>
+            </div>
+            <p class="text-muted">
+                <i class="fas fa-calendar me-1"></i>{{ object.criado_em|date:"d/m/Y H:i" }} • 
+                <i class="fas fa-robot me-1"></i>{{ object.modelo_ia_usado }} • 
+                <i class="fas fa-user me-1"></i>{{ object.cidadao.nome }}
+            </p>
+        </div>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="row">
+            <!-- Coluna Esquerda: Informações Originais -->
+            <div class="col-lg-6">
+                <!-- Paciente e Contexto Prévio -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-user me-2"></i>{{ object.cidadao.nome }}
+                            <span class="badge bg-{{ object.triagem_risco|yesno:'danger,warning,success' }} risco-badge ms-2">
+                                {{ object.get_triagem_risco_display|upper }}
+                            </span>
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Informações Básicas -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <small><strong>Idade:</strong> {{ object.cidadao.idade }} anos</small><br>
+                                <small><strong>Sexo:</strong> {{ object.cidadao.get_sexo_display }}</small><br>
+                                <small><strong>Profissão:</strong> {{ object.cidadao.profissao|default:"N/A" }}</small>
+                            </div>
+                            <div class="col-md-6">
+                                <small><strong>CPF:</strong> {{ object.cidadao.cpf }}</small><br>
+                                <small><strong>Telefone:</strong> {{ object.cidadao.telefone|default:"N/A" }}</small><br>
+                                <small><strong>Plano:</strong> {{ object.cidadao.possui_plano_saude|yesno:"Sim,Não" }}</small>
+                            </div>
+                        </div>
+
+                        <!-- Condições Crônicas Prévias -->
+                        <h6 class="text-success">
+                            <i class="fas fa-history me-1"></i>Informações Prévias (Consideradas pela IA):
+                        </h6>
+                        
+                        {% if object.cidadao.condicoes_saude_cronicas %}
+                        <div class="mb-2">
+                            <small><strong>Condições Crônicas:</strong></small><br>
+                            {% for condicao in object.cidadao.condicoes_saude_cronicas %}
+                                <span class="badge bg-warning text-dark me-1">{{ condicao }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        {% if object.cidadao.medicamentos_continuo %}
+                        <div class="condicao-previa mb-2">
+                            <small><strong>Medicamentos Habituais:</strong></small><br>
+                            <small>{{ object.cidadao.medicamentos_continuo }}</small>
+                        </div>
+                        {% endif %}
+
+                        {% if object.cidadao.alergias_conhecidas %}
+                        <div class="alert alert-warning py-2 mb-2">
+                            <small><strong>⚠️ Alergias:</strong> {{ object.cidadao.alergias_conhecidas }}</small>
+                        </div>
+                        {% endif %}
+
+                        {% if object.cidadao.cirurgias_anteriores %}
+                        <div class="mb-2">
+                            <small><strong>Cirurgias:</strong> {{ object.cidadao.cirurgias_anteriores }}</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Dados da Consulta -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-stethoscope me-2"></i>Dados da Consulta</h6>
+                    </div>
+                    <div class="card-body dados-originais">
+                        {% if dados_saude %}
+                        {% with dados=dados_saude.get_dados_estruturados %}
+                        
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <small><strong>Pressão:</strong> {{ dados.sinais_vitais.pressao_arterial|default:"N/A" }}</small>
+                            </div>
+                            <div class="col-6">
+                                <small><strong>FC:</strong> {{ dados.sinais_vitais.frequencia_cardiaca|default:"N/A" }} bpm</small>
+                            </div>
+                            <div class="col-6">
+                                <small><strong>Temp:</strong> {{ dados.sinais_vitais.temperatura|default:"N/A" }}°C</small>
+                            </div>
+                            <div class="col-6">
+                                <small><strong>IMC:</strong> {{ dados.antropometria.imc|default:"N/A" }}</small>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <small><strong>Sintomas Principais:</strong></small><br>
+                            <small>{{ dados.sintomas.principais|default:"Não informado" }}</small>
+                            <small class="text-muted d-block">
+                                Dor: {{ dados.sintomas.nivel_dor|default:"N/A" }}/10 • 
+                                Duração: {{ dados.sintomas.duracao|default:"N/A" }} dias
+                            </small>
+                        </div>
+
+                        {% if dados.historico.medicamentos %}
+                        <div class="mb-2">
+                            <small><strong>Medicamentos Hoje:</strong> {{ dados.historico.medicamentos }}</small>
+                        </div>
+                        {% endif %}
+
+                        {% endwith %}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Análise da IA -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-robot me-2"></i>Análise Original da IA</h6>
+                    </div>
+                    <div class="card-body contexto-ia">
+                        <div class="mb-3">
+                            <small><strong>Resumo:</strong></small>
+                            <p class="mb-2">{{ object.resumo_anamnese }}</p>
+                        </div>
+
+                        {% if object.hipoteses_diagnosticas %}
+                        <div class="mb-3">
+                            <small><strong>Hipóteses Diagnósticas:</strong></small>
+                            <ol class="mb-2">
+                                {% for hipotese in object.hipoteses_diagnosticas %}
+                                <li><small>{{ hipotese }}</small></li>
+                                {% endfor %}
+                            </ol>
+                        </div>
+                        {% endif %}
+
+                        <div>
+                            <small><strong>Recomendações:</strong></small>
+                            <div class="small">{{ object.recomendacoes|linebreaksbr }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Coluna Direita: Campos de Revisão -->
+            <div class="col-lg-6">
+                <div class="revisao-section">
+                    <h5 class="mb-3">
+                        <i class="fas fa-edit me-2"></i>Revisão Médica
+                    </h5>
+
+                    <!-- Comentários de Revisão -->
+                    <div class="mb-3">
+                        <label for="{{ form.comentarios_revisao.id_for_label }}" class="form-label">
+                            <i class="fas fa-comments me-1"></i><strong>Comentários da Revisão</strong>
+                        </label>
+                        {{ form.comentarios_revisao }}
+                        <div class="form-text">
+                            Observações sobre a análise da IA, correções necessárias, etc.
+                        </div>
+                    </div>
+
+                    <!-- Resumo Final -->
+                    <div class="mb-3">
+                        <label for="{{ form.resumo_final.id_for_label }}" class="form-label">
+                            <i class="fas fa-file-alt me-1"></i><strong>Resumo Final</strong>
+                        </label>
+                        {{ form.resumo_final }}
+                        <div class="form-text">
+                            Resumo final após revisão médica (substitui o da IA se preenchido)
+                        </div>
+                    </div>
+
+                    <!-- Diagnóstico Final -->
+                    <div class="mb-3">
+                        <label for="{{ form.diagnostico_final.id_for_label }}" class="form-label">
+                            <i class="fas fa-diagnoses me-1"></i><strong>Diagnóstico Final</strong>
+                        </label>
+                        {{ form.diagnostico_final }}
+                        <div class="form-text">
+                            Diagnóstico definitivo após avaliação médica
+                        </div>
+                    </div>
+
+                    <!-- Recomendações Finais -->
+                    <div class="mb-4">
+                        <label for="{{ form.recomendacoes_finais.id_for_label }}" class="form-label">
+                            <i class="fas fa-clipboard-list me-1"></i><strong>Recomendações Finais</strong>
+                        </label>
+                        {{ form.recomendacoes_finais }}
+                        <div class="form-text">
+                            Recomendações finais após revisão médica
+                        </div>
+                    </div>
+
+                    <!-- Ações -->
+                    <div class="d-grid gap-2">
+                        <button type="submit" name="acao" value="aprovar" class="btn btn-success btn-lg">
+                            <i class="fas fa-check-circle me-2"></i>Aprovar Anamnese
+                        </button>
+                        <button type="submit" name="acao" value="revisar" class="btn btn-warning btn-lg">
+                            <i class="fas fa-edit me-2"></i>Salvar Revisão
+                        </button>
+                        <button type="submit" name="acao" value="rejeitar" class="btn btn-danger btn-lg">
+                            <i class="fas fa-times-circle me-2"></i>Solicitar Nova Análise
+                        </button>
+                    </div>
+
+                    <div class="text-center mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            A revisão será registrada com seu nome e data/hora
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Adiciona classes Bootstrap aos campos do formulário
+    const campos = document.querySelectorAll('input, select, textarea');
+    campos.forEach(campo => {
+        campo.classList.add('form-control');
+    });
+    
+    // Confirma ações importantes
+    const btnRejeitar = document.querySelector('button[value="rejeitar"]');
+    if (btnRejeitar) {
+        btnRejeitar.addEventListener('click', function(e) {
+            if (!confirm('Tem certeza que deseja solicitar nova análise? Isso irá reprocessar a anamnese.')) {
+                e.preventDefault();
+            }
+        });
+    }
+    
+    // Auto-resize para textareas
+    const textareas = document.querySelectorAll('textarea');
+    textareas.forEach(textarea => {
+        textarea.style.minHeight = '100px';
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = this.scrollHeight + 'px';
+        });
+    });
+});
+</script>
+{% endblock %}

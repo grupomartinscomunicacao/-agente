@@ -1,0 +1,349 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Alertas de Saúde - Sistema de Saúde{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-exclamation-triangle me-2"></i>Alertas de Saúde</h2>
+            <a href="{% url 'dashboard:dashboard' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Voltar
+            </a>
+        </div>
+
+        <!-- Filtros -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="busca" class="form-label">Buscar Cidadão</label>
+                        <input type="text" class="form-control" id="busca" name="busca" 
+                               value="{{ request.GET.busca }}" 
+                               placeholder="Nome do cidadão">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="prioridade" class="form-label">Prioridade</label>
+                        <select class="form-select" id="prioridade" name="prioridade">
+                            <option value="">Todas as prioridades</option>
+                            <option value="baixa" {% if request.GET.prioridade == "baixa" %}selected{% endif %}>Baixa</option>
+                            <option value="media" {% if request.GET.prioridade == "media" %}selected{% endif %}>Média</option>
+                            <option value="alta" {% if request.GET.prioridade == "alta" %}selected{% endif %}>Alta</option>
+                            <option value="urgente" {% if request.GET.prioridade == "urgente" %}selected{% endif %}>Urgente</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="tipo_alerta" class="form-label">Tipo de Alerta</label>
+                        <select class="form-select" id="tipo_alerta" name="tipo_alerta">
+                            <option value="">Todos os tipos</option>
+                            <option value="pressao_alta" {% if request.GET.tipo_alerta == "pressao_alta" %}selected{% endif %}>Pressão Alta</option>
+                            <option value="glicemia_alta" {% if request.GET.tipo_alerta == "glicemia_alta" %}selected{% endif %}>Glicemia Alta</option>
+                            <option value="frequencia_anormal" {% if request.GET.tipo_alerta == "frequencia_anormal" %}selected{% endif %}>Frequência Anormal</option>
+                            <option value="temperatura_alta" {% if request.GET.tipo_alerta == "temperatura_alta" %}selected{% endif %}>Temperatura Alta</option>
+                            <option value="saturacao_baixa" {% if request.GET.tipo_alerta == "saturacao_baixa" %}selected{% endif %}>Saturação Baixa</option>
+                            <option value="outros" {% if request.GET.tipo_alerta == "outros" %}selected{% endif %}>Outros</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-search"></i> Filtrar
+                        </button>
+                        <a href="{% url 'dashboard:alertas_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i> Limpar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Lista de Alertas -->
+        <div class="card">
+            <div class="card-body">
+                {% if alertas %}
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="alertasTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Cidadão</th>
+                                    <th>Tipo de Alerta</th>
+                                    <th>Prioridade</th>
+                                    <th>Descrição</th>
+                                    <th>Criado em</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for alerta in alertas %}
+                                <tr class="
+                                    {% if alerta.prioridade == 'urgente' %}table-danger
+                                    {% elif alerta.prioridade == 'alta' %}table-warning
+                                    {% endif %}">
+                                    <td>
+                                        <strong>{{ alerta.cidadao.nome }}</strong>
+                                        <br><small class="text-muted">{{ alerta.cidadao.cpf }}</small>
+                                        {% if alerta.cidadao.telefone %}
+                                            <br><small class="text-muted">{{ alerta.cidadao.telefone }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ alerta.get_tipo_alerta_display|default:alerta.tipo_alerta }}</span>
+                                    </td>
+                                    <td>
+                                        {% if alerta.prioridade == 'baixa' %}
+                                            <span class="badge bg-success">Baixa</span>
+                                        {% elif alerta.prioridade == 'media' %}
+                                            <span class="badge bg-warning text-dark">Média</span>
+                                        {% elif alerta.prioridade == 'alta' %}
+                                            <span class="badge bg-danger">Alta</span>
+                                        {% elif alerta.prioridade == 'urgente' %}
+                                            <span class="badge bg-dark">Urgente</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="text-wrap" style="max-width: 300px;">
+                                            {{ alerta.descricao|truncatewords:15 }}
+                                            {% if alerta.descricao|length > 100 %}
+                                                <button class="btn btn-sm btn-link p-0" data-bs-toggle="modal" data-bs-target="#alertaModal{{ alerta.pk }}">
+                                                    Ver mais...
+                                                </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {{ alerta.criado_em|date:"d/m/Y" }}
+                                        <br><small class="text-muted">{{ alerta.criado_em|date:"H:i" }}</small>
+                                    </td>
+                                    <td>
+                                        {% if alerta.resolvido %}
+                                            <span class="badge bg-success">Resolvido</span>
+                                            {% if alerta.resolvido_em %}
+                                                <br><small class="text-muted">{{ alerta.resolvido_em|date:"d/m/Y H:i" }}</small>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Pendente</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button class="btn btn-outline-primary" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#alertaModal{{ alerta.pk }}" 
+                                                    title="Ver Detalhes">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            {% if not alerta.resolvido %}
+                                                <button class="btn btn-outline-success" 
+                                                        onclick="resolverAlerta('{{ alerta.pk }}')" 
+                                                        title="Marcar como Resolvido">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                            {% endif %}
+                                            {% if alerta.cidadao.telefone %}
+                                                <a href="tel:{{ alerta.cidadao.telefone }}" 
+                                                   class="btn btn-outline-info" 
+                                                   title="Ligar para o Cidadão">
+                                                    <i class="fas fa-phone"></i>
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- Modal para detalhes do alerta -->
+                                <div class="modal fade" id="alertaModal{{ alerta.pk }}" tabindex="-1">
+                                    <div class="modal-dialog modal-lg">
+                                        <div class="modal-content">
+                                            <div class="modal-header bg-{% if alerta.prioridade == 'urgente' %}danger{% elif alerta.prioridade == 'alta' %}warning{% else %}primary{% endif %} text-white">
+                                                <h5 class="modal-title">
+                                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                                    Alerta - {{ alerta.get_tipo_alerta_display|default:alerta.tipo_alerta }}
+                                                </h5>
+                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <h6><i class="fas fa-user me-2"></i>Cidadão</h6>
+                                                        <p><strong>{{ alerta.cidadao.nome }}</strong></p>
+                                                        <p><small>CPF: {{ alerta.cidadao.cpf }}</small></p>
+                                                        {% if alerta.cidadao.telefone %}
+                                                            <p><small>Telefone: {{ alerta.cidadao.telefone }}</small></p>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <h6><i class="fas fa-info-circle me-2"></i>Informações do Alerta</h6>
+                                                        <p><strong>Prioridade:</strong> 
+                                                            <span class="badge bg-{% if alerta.prioridade == 'urgente' %}danger{% elif alerta.prioridade == 'alta' %}warning{% else %}success{% endif %}">
+                                                                {{ alerta.get_prioridade_display }}
+                                                            </span>
+                                                        </p>
+                                                        <p><strong>Criado em:</strong> {{ alerta.criado_em|date:"d/m/Y H:i" }}</p>
+                                                    </div>
+                                                </div>
+                                                <hr>
+                                                <h6><i class="fas fa-file-alt me-2"></i>Descrição</h6>
+                                                <p>{{ alerta.descricao|linebreaks }}</p>
+                                                
+                                                {% if alerta.valor_referencia %}
+                                                <hr>
+                                                <h6><i class="fas fa-chart-line me-2"></i>Valor de Referência</h6>
+                                                <p>{{ alerta.valor_referencia }}</p>
+                                                {% endif %}
+                                            </div>
+                                            <div class="modal-footer">
+                                                {% if not alerta.resolvido %}
+                                                    <button type="button" class="btn btn-success" onclick="resolverAlerta('{{ alerta.pk }}')">
+                                                        <i class="fas fa-check me-2"></i>Marcar como Resolvido
+                                                    </button>
+                                                {% endif %}
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Paginação -->
+                    {% if is_paginated %}
+                        <nav aria-label="Paginação">
+                            <ul class="pagination justify-content-center mt-4">
+                                {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page=1" title="Primeira">
+                                            <i class="fas fa-angle-double-left"></i>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}" title="Anterior">
+                                            <i class="fas fa-angle-left"></i>
+                                        </a>
+                                    </li>
+                                {% endif %}
+
+                                {% for num in page_obj.paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ num }}</span>
+                                        </li>
+                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}" title="Próxima">
+                                            <i class="fas fa-angle-right"></i>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.paginator.num_pages }}" title="Última">
+                                            <i class="fas fa-angle-double-right"></i>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    {% endif %}
+
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-shield-alt fa-3x text-success mb-3"></i>
+                        <h4 class="text-muted">Nenhum alerta encontrado</h4>
+                        <p class="text-muted">
+                            {% if request.GET.busca or request.GET.prioridade or request.GET.tipo_alerta %}
+                                Tente ajustar os filtros ou 
+                                <a href="{% url 'dashboard:alertas_list' %}">limpar a busca</a>.
+                            {% else %}
+                                Ótimo! Não há alertas de saúde no momento.
+                            {% endif %}
+                        </p>
+                        <a href="{% url 'dashboard:dashboard' %}" class="btn btn-primary">
+                            <i class="fas fa-chart-line me-2"></i>Voltar ao Dashboard
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Estatísticas -->
+        <div class="row mt-4">
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Total de Alertas</h5>
+                        <h2 class="text-primary">{{ paginator.count|default:0 }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Urgentes</h5>
+                        <h2 class="text-danger">{{ stats.urgentes|default:0 }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Pendentes</h5>
+                        <h2 class="text-warning">{{ stats.pendentes|default:0 }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Resolvidos Hoje</h5>
+                        <h2 class="text-success">{{ stats.resolvidos_hoje|default:0 }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('#alertasTable').DataTable({
+        "language": {
+            "url": "//cdn.datatables.net/plug-ins/1.13.4/i18n/pt-BR.json"
+        },
+        "pageLength": 25,
+        "responsive": true,
+        "order": [[4, "desc"]], // Ordenar por data de criação
+        "columnDefs": [
+            { "orderable": false, "targets": [6] } // Ações não ordenáveis
+        ]
+    });
+});
+
+function resolverAlerta(alertaId) {
+    if (confirm('Marcar este alerta como resolvido?')) {
+        $.post('/dashboard/alertas/' + alertaId + '/resolver/', {
+            'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+        })
+        .done(function(response) {
+            if (response.success) {
+                alert('Alerta marcado como resolvido!');
+                location.reload();
+            } else {
+                alert('Erro ao resolver alerta: ' + response.message);
+            }
+        })
+        .fail(function() {
+            alert('Erro de conexão. Tente novamente.');
+        });
+    }
+}
+</script>
+{% endblock %}

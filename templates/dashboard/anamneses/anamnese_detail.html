@@ -1,0 +1,524 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Detalhes da Anamnese - {{ anamnese.cidadao.nome }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .info-card {
+        border-left: 4px solid #007bff;
+        background: #f8f9fa;
+    }
+    .risco-baixo { border-left-color: #28a745; }
+    .risco-medio { border-left-color: #ffc107; }
+    .risco-alto { border-left-color: #fd7e14; }
+    .risco-critico { border-left-color: #dc3545; }
+    
+    .bg-light-success {
+        background-color: #d4edda !important;
+        border-bottom: 2px solid #28a745 !important;
+    }
+    
+    .border-success {
+        border-color: #28a745 !important;
+        box-shadow: 0 0 0 0.1rem rgba(40, 167, 69, 0.25);
+    }
+    
+    .badge-condicao {
+        font-size: 0.8rem;
+        margin-right: 0.25rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .contexto-previo {
+        background: #e3f2fd;
+        border: 1px solid #bbdefb;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .alerta-alergia {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        color: #856404;
+    }
+    
+    .timeline-item {
+        border-left: 2px solid #dee2e6;
+        padding-left: 1rem;
+        margin-bottom: 1rem;
+        position: relative;
+    }
+    
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -6px;
+        top: 0;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #007bff;
+    }
+    
+    .hipotese-item {
+        background: #f8f9fa;
+        border-left: 3px solid #007bff;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        border-radius: 0.375rem;
+    }
+    
+    .medicamento-habitual {
+        background: #e8f5e8;
+        border: 1px solid #c3e6cb;
+        padding: 0.5rem;
+        border-radius: 0.25rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .recomendacoes {
+        background: #f8f9fa;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        border-left: 4px solid #28a745;
+    }
+    
+    .recomendacoes-finais {
+        background: #e3f2fd;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        border-left: 4px solid #007bff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Alerta de Nova Anamnese -->
+    {% if anamnese.status == 'concluida' and anamnese.criado_em|timesince < '1 hour' %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <h5 class="alert-heading">
+                    <i class="fas fa-check-circle me-2"></i>Anamnese Recém-Gerada com IA!
+                </h5>
+                <p class="mb-2">
+                    Esta anamnese foi gerada automaticamente pelo agente de inteligência artificial.
+                    Revise as <strong>indicações e recomendações</strong> abaixo antes de prosseguir com o atendimento.
+                </p>
+                <hr>
+                <p class="mb-0">
+                    <i class="fas fa-info-circle me-1"></i>
+                    <strong>Próximos passos:</strong> Validar as informações, implementar as recomendações e agendar acompanhamento se necessário.
+                </p>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Cabeçalho -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h1><i class="fas fa-file-medical me-2"></i>Detalhes da Anamnese</h1>
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-calendar me-1"></i>{{ anamnese.criado_em|date:"d/m/Y H:i" }}
+                        {% if anamnese.modelo_ia_usado %}
+                        <span class="ms-3"><i class="fas fa-robot me-1"></i>{{ anamnese.modelo_ia_usado }}</span>
+                        {% endif %}
+                        {% if anamnese.confianca_ia %}
+                        <span class="ms-3"><i class="fas fa-chart-line me-1"></i>{{ anamnese.confianca_ia|floatformat:1 }}% confiança</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    <a href="{% url 'dashboard:anamneses_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Voltar
+                    </a>
+                    <a href="{% url 'dashboard:nova_anamnese' %}" class="btn btn-success ms-2">
+                        <i class="fas fa-plus me-1"></i>Nova Anamnese
+                    </a>
+                    {% if not anamnese.revisado_por %}
+                    <a href="{% url 'dashboard:revisar_anamnese' anamnese.pk %}" class="btn btn-primary ms-2">
+                        <i class="fas fa-user-md me-1"></i>Revisar
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Informações do Paciente -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card info-card risco-{{ anamnese.triagem_risco }}">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user me-2"></i>{{ anamnese.cidadao.nome }}
+                        <span class="badge bg-{{ anamnese.triagem_risco|yesno:'danger,warning,success' }} ms-2">
+                            {{ anamnese.get_triagem_risco_display|upper }}
+                        </span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>CPF:</strong> {{ anamnese.cidadao.cpf }}</p>
+                            <p><strong>Idade:</strong> {{ anamnese.cidadao.idade }} anos</p>
+                            <p><strong>Sexo:</strong> {{ anamnese.cidadao.get_sexo_display }}</p>
+                            <p><strong>Profissão:</strong> {{ anamnese.cidadao.profissao|default:"Não informado" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Telefone:</strong> {{ anamnese.cidadao.telefone|default:"Não informado" }}</p>
+                            <p><strong>Email:</strong> {{ anamnese.cidadao.email|default:"Não informado" }}</p>
+                            <p><strong>Cidade:</strong> {{ anamnese.cidadao.cidade|default:"Não informado" }}/{{ anamnese.cidadao.estado|default:"--" }}</p>
+                            <p><strong>Plano de Saúde:</strong> {{ anamnese.cidadao.possui_plano_saude|yesno:"Sim,Não" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Resumo Rápido</h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center">
+                        <div class="mb-3">
+                            <span class="badge bg-{{ anamnese.triagem_risco|yesno:'danger,warning,success' }} badge-lg">
+                                {{ anamnese.get_triagem_risco_display|upper }}
+                            </span>
+                        </div>
+                        {% if anamnese.hipoteses_diagnosticas %}
+                        <small class="text-muted">
+                            <strong>Principal hipótese:</strong><br>
+                            {{ anamnese.hipoteses_diagnosticas.0 }}
+                        </small>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contexto Médico Prévio -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="contexto-previo">
+                <h6><i class="fas fa-history me-2"></i>Contexto Médico Prévio (Considerado pela IA)</h6>
+                <div class="row">
+                    <div class="col-md-4">
+                        <h6 class="text-primary">Condições Crônicas:</h6>
+                        {% if anamnese.cidadao.condicoes_saude_cronicas %}
+                            {% for condicao in anamnese.cidadao.condicoes_saude_cronicas %}
+                                <span class="badge badge-condicao bg-warning text-dark">{{ condicao }}</span>
+                            {% endfor %}
+                        {% else %}
+                            <small class="text-muted">Nenhuma condição crônica registrada</small>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <h6 class="text-success">Medicamentos Habituais:</h6>
+                        {% if anamnese.cidadao.medicamentos_continuo %}
+                            <div class="medicamento-habitual">
+                                <small>{{ anamnese.cidadao.medicamentos_continuo }}</small>
+                            </div>
+                        {% else %}
+                            <small class="text-muted">Nenhum medicamento contínuo</small>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        {% if anamnese.cidadao.alergias_conhecidas %}
+                        <h6 class="text-danger">⚠️ Alergias Conhecidas:</h6>
+                        <div class="alert alerta-alergia py-2">
+                            <strong>{{ anamnese.cidadao.alergias_conhecidas }}</strong>
+                        </div>
+                        {% endif %}
+                        
+                        {% if anamnese.cidadao.cirurgias_anteriores %}
+                        <h6 class="text-info">Histórico Cirúrgico:</h6>
+                        <small class="text-muted">{{ anamnese.cidadao.cirurgias_anteriores }}</small>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dados da Consulta Atual -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-heartbeat me-2"></i>Dados Coletados na Consulta</h6>
+                </div>
+                <div class="card-body">
+                    {% if anamnese.dados_saude %}
+                    {% with dados=anamnese.dados_saude.get_dados_estruturados %}
+                    
+                    <h6 class="text-primary">Sinais Vitais:</h6>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <small><strong>Pressão:</strong> {{ dados.sinais_vitais.pressao_arterial|default:"N/A" }}</small>
+                        </div>
+                        <div class="col-6">
+                            <small><strong>FC:</strong> {{ dados.sinais_vitais.frequencia_cardiaca|default:"N/A" }} bpm</small>
+                        </div>
+                        <div class="col-6">
+                            <small><strong>Temp:</strong> {{ dados.sinais_vitais.temperatura|default:"N/A" }}°C</small>
+                        </div>
+                        <div class="col-6">
+                            <small><strong>IMC:</strong> {{ dados.antropometria.imc|default:"N/A" }}</small>
+                        </div>
+                    </div>
+
+                    <h6 class="text-danger">Sintomas Atuais:</h6>
+                    <div class="mb-3">
+                        <p class="mb-1"><strong>{{ dados.sintomas.principais|default:"Não informado" }}</strong></p>
+                        <small class="text-muted">
+                            Dor: {{ dados.sintomas.nivel_dor|default:"N/A" }}/10 • 
+                            Duração: {{ dados.sintomas.duracao|default:"N/A" }} dias
+                        </small>
+                    </div>
+
+                    {% endwith %}
+                    {% else %}
+                    <p class="text-muted">Dados de saúde não disponíveis</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-brain me-2"></i>Resumo da Anamnese</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        {{ anamnese.resumo_anamnese|linebreaksbr }}
+                    </div>
+                    
+                    {% if anamnese.revisado_por %}
+                    <div class="alert alert-info">
+                        <strong>Revisado por:</strong> {{ anamnese.revisado_por.get_full_name|default:anamnese.revisado_por.username }}<br>
+                        <strong>Data:</strong> {{ anamnese.data_revisao|date:"d/m/Y H:i" }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hipóteses Diagnósticas -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-search-plus me-2"></i>Hipóteses Diagnósticas</h6>
+                </div>
+                <div class="card-body">
+                    {% if anamnese.get_hipoteses_diagnosticas_lista %}
+                        {% for hipotese in anamnese.get_hipoteses_diagnosticas_lista %}
+                        <div class="hipotese-item">
+                            <strong>{{ forloop.counter }}.</strong> {{ hipotese }}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">Nenhuma hipótese diagnóstica registrada</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Diagnóstico da IA -->
+        <div class="col-md-12 mb-4">
+            <div class="card border-primary">
+                <div class="card-header bg-light-primary">
+                    <h6 class="mb-0">
+                        <i class="fas fa-stethoscope me-2 text-primary"></i>Diagnóstico do Agente de IA
+                        {% if anamnese.confianca_ia %}
+                        <span class="badge bg-primary ms-2">{{ anamnese.confianca_ia|floatformat:1 }}% confiança</span>
+                        {% endif %}
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if anamnese.diagnostico_clinico %}
+                        <div class="alert alert-primary mb-3">
+                            <i class="fas fa-brain me-2"></i>
+                            <small>Este diagnóstico foi gerado pela inteligência artificial analisando o resumo da anamnese e dados coletados.</small>
+                        </div>
+                        
+                        <div class="diagnostico-principal mb-4">
+                            <h6 class="text-primary"><i class="fas fa-diagnosis me-2"></i>Diagnóstico Principal:</h6>
+                            <div class="bg-light p-3 rounded">
+                                <strong>{{ anamnese.diagnostico_clinico }}</strong>
+                            </div>
+                        </div>
+
+                        {% if anamnese.get_diagnosticos_diferenciais_lista %}
+                        <div class="diagnosticos-diferenciais mb-4">
+                            <h6 class="text-warning"><i class="fas fa-list-alt me-2"></i>Diagnósticos Diferenciais:</h6>
+                            <ul class="list-unstyled">
+                                {% for diagnostico in anamnese.get_diagnosticos_diferenciais_lista %}
+                                <li class="mb-2">
+                                    <i class="fas fa-angle-right me-2 text-muted"></i>{{ diagnostico }}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+
+                        {% if anamnese.get_exames_complementares_lista %}
+                        <div class="exames-complementares mb-4">
+                            <h6 class="text-info"><i class="fas fa-flask me-2"></i>Exames Complementares Recomendados:</h6>
+                            <ul class="list-unstyled">
+                                {% for exame in anamnese.get_exames_complementares_lista %}
+                                <li class="mb-2">
+                                    <i class="fas fa-vial me-2 text-info"></i>{{ exame }}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+
+                        {% if anamnese.prognose %}
+                        <div class="prognose mb-3">
+                            <h6 class="text-success"><i class="fas fa-chart-line me-2"></i>Prognóstico:</h6>
+                            <p class="mb-0">{{ anamnese.prognose|linebreaksbr }}</p>
+                        </div>
+                        {% endif %}
+
+                    {% else %}
+                        <p class="text-muted">Nenhum diagnóstico específico gerado pela IA</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card border-success">
+                <div class="card-header bg-light-success">
+                    <h6 class="mb-0">
+                        <i class="fas fa-robot me-2 text-success"></i>Indicações do Agente de IA
+                        {% if anamnese.confianca_ia %}
+                        <span class="badge bg-success ms-2">{{ anamnese.confianca_ia|floatformat:1 }}% confiança</span>
+                        {% endif %}
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if anamnese.recomendacoes %}
+                        <div class="alert alert-info mb-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <small>Estas recomendações foram geradas pela inteligência artificial com base nos dados clínicos fornecidos.</small>
+                        </div>
+                        <div class="recomendacoes">
+                            {{ anamnese.recomendacoes|linebreaksbr }}
+                        </div>
+                        {% if anamnese.recomendacoes_finais %}
+                        <hr>
+                        <h6 class="text-primary"><i class="fas fa-user-md me-2"></i>Revisão Médica:</h6>
+                        <div class="recomendacoes-finais">
+                            {{ anamnese.recomendacoes_finais|linebreaksbr }}
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-muted">Nenhuma recomendação registrada</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alertas Associados -->
+    {% if alertas %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Alertas de Saúde</h6>
+                </div>
+                <div class="card-body">
+                    {% for alerta in alertas %}
+                    <div class="alert alert-{{ alerta.prioridade|yesno:'danger,warning,info' }}">
+                        <strong>{{ alerta.get_tipo_alerta_display }}:</strong> {{ alerta.descricao }}
+                        <small class="text-muted d-block">{{ alerta.criado_em|date:"d/m/Y H:i" }}</small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Histórico de Anamneses -->
+    {% if historico_anamneses %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-history me-2"></i>Histórico de Anamneses Anteriores</h6>
+                </div>
+                <div class="card-body">
+                    {% for anamnese_anterior in historico_anamneses %}
+                    <div class="timeline-item">
+                        <div class="d-flex justify-content-between">
+                            <strong>{{ anamnese_anterior.criado_em|date:"d/m/Y" }}</strong>
+                            <span class="badge bg-{{ anamnese_anterior.triagem_risco|yesno:'danger,warning,success' }}">
+                                {{ anamnese_anterior.get_triagem_risco_display }}
+                            </span>
+                        </div>
+                        <p class="mb-1">{{ anamnese_anterior.resumo_anamnese|truncatewords:20 }}</p>
+                        <small class="text-muted">
+                            <a href="{% url 'dashboard:anamnese_detail' anamnese_anterior.pk %}" class="text-decoration-none">
+                                Ver detalhes <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Destacar elementos importantes baseados no risco
+    const risco = '{{ anamnese.triagem_risco }}';
+    
+    if (risco === 'alto' || risco === 'critico') {
+        // Adicionar efeito de pulsação para casos críticos
+        const badge = document.querySelector('.badge-lg');
+        if (badge) {
+            badge.style.animation = 'pulse 2s infinite';
+        }
+    }
+    
+    // Tooltip para informações adicionais
+    const tooltipElements = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    tooltipElements.forEach(element => {
+        new bootstrap.Tooltip(element);
+    });
+});
+
+// CSS para animação
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

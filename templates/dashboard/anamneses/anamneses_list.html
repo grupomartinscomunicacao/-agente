@@ -1,0 +1,343 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Anamneses - Sistema de Saúde{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-clipboard-list me-2"></i>Anamneses</h2>
+            <div>
+                <a href="{% url 'dashboard:nova_anamnese' %}" class="btn btn-primary me-2">
+                    <i class="fas fa-plus me-2"></i>Nova Anamnese
+                </a>
+                <button class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#processarAnamneseModal">
+                    <i class="fas fa-robot me-2"></i>Processar com IA
+                </button>
+                <a href="{% url 'dashboard:dashboard' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Voltar
+                </a>
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="busca" class="form-label">Buscar Cidadão</label>
+                        <input type="text" class="form-control" id="busca" name="busca" 
+                               value="{{ request.GET.busca }}" 
+                               placeholder="Nome do cidadão">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select class="form-select" id="status" name="status">
+                            <option value="">Todos os status</option>
+                            <option value="pendente" {% if request.GET.status == "pendente" %}selected{% endif %}>Pendente</option>
+                            <option value="processando" {% if request.GET.status == "processando" %}selected{% endif %}>Processando</option>
+                            <option value="concluida" {% if request.GET.status == "concluida" %}selected{% endif %}>Concluída</option>
+                            <option value="erro" {% if request.GET.status == "erro" %}selected{% endif %}>Erro</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="tipo" class="form-label">Tipo</label>
+                        <select class="form-select" id="tipo" name="tipo">
+                            <option value="">Todos os tipos</option>
+                            <option value="inicial" {% if request.GET.tipo == "inicial" %}selected{% endif %}>Inicial</option>
+                            <option value="retorno" {% if request.GET.tipo == "retorno" %}selected{% endif %}>Retorno</option>
+                            <option value="urgencia" {% if request.GET.tipo == "urgencia" %}selected{% endif %}>Urgência</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-search"></i> Filtrar
+                        </button>
+                        <a href="{% url 'dashboard:anamneses_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i> Limpar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Lista de Anamneses -->
+        <div class="card">
+            <div class="card-body">
+                {% if anamneses %}
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="anamnesesTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Cidadão</th>
+                                    <th>Tipo</th>
+                                    <th>Status</th>
+                                    <th>Triagem</th>
+                                    <th>Criado em</th>
+                                    <th>Processado em</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for anamnese in anamneses %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ anamnese.cidadao.nome }}</strong>
+                                        <br><small class="text-muted">{{ anamnese.cidadao.cpf }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ anamnese.get_tipo_display }}</span>
+                                    </td>
+                                    <td>
+                                        {% if anamnese.status == 'pendente' %}
+                                            <span class="badge bg-warning text-dark">{{ anamnese.get_status_display }}</span>
+                                        {% elif anamnese.status == 'processando' %}
+                                            <span class="badge bg-primary">{{ anamnese.get_status_display }}</span>
+                                        {% elif anamnese.status == 'concluida' %}
+                                            <span class="badge bg-success">{{ anamnese.get_status_display }}</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">{{ anamnese.get_status_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if anamnese.triagem_risco %}
+                                            {% if anamnese.triagem_risco == 'baixo' %}
+                                                <span class="badge bg-success">Baixo</span>
+                                            {% elif anamnese.triagem_risco == 'medio' %}
+                                                <span class="badge bg-warning text-dark">Médio</span>
+                                            {% elif anamnese.triagem_risco == 'alto' %}
+                                                <span class="badge bg-danger">Alto</span>
+                                            {% elif anamnese.triagem_risco == 'critico' %}
+                                                <span class="badge bg-dark">Crítico</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {{ anamnese.criado_em|date:"d/m/Y" }}
+                                        <br><small class="text-muted">{{ anamnese.criado_em|date:"H:i" }}</small>
+                                    </td>
+                                    <td>
+                                        {% if anamnese.processado_em %}
+                                            {{ anamnese.processado_em|date:"d/m/Y" }}
+                                            <br><small class="text-muted">{{ anamnese.processado_em|date:"H:i" }}</small>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{% url 'dashboard:anamnese_detail' anamnese.pk %}" 
+                                               class="btn btn-outline-primary" title="Ver Detalhes">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if anamnese.status == 'pendente' %}
+                                                <button class="btn btn-outline-success" 
+                                                        onclick="processarAnamnese('{{ anamnese.pk }}')" 
+                                                        title="Processar">
+                                                    <i class="fas fa-play"></i>
+                                                </button>
+                                            {% endif %}
+                                            {% if anamnese.status == 'concluida' and anamnese.triagem_risco in 'alto,critico' %}
+                                                <a href="{% url 'dashboard:revisar_anamnese' anamnese.pk %}" 
+                                                   class="btn btn-outline-warning" title="Revisar">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Paginação -->
+                    {% if is_paginated %}
+                        <nav aria-label="Paginação">
+                            <ul class="pagination justify-content-center mt-4">
+                                {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page=1" title="Primeira">
+                                            <i class="fas fa-angle-double-left"></i>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}" title="Anterior">
+                                            <i class="fas fa-angle-left"></i>
+                                        </a>
+                                    </li>
+                                {% endif %}
+
+                                {% for num in page_obj.paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ num }}</span>
+                                        </li>
+                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}" title="Próxima">
+                                            <i class="fas fa-angle-right"></i>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.paginator.num_pages }}" title="Última">
+                                            <i class="fas fa-angle-double-right"></i>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    {% endif %}
+
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                        <h4 class="text-muted">Nenhuma anamnese encontrada</h4>
+                        <p class="text-muted">
+                            {% if request.GET.busca or request.GET.status or request.GET.tipo %}
+                                Tente ajustar os filtros ou 
+                                <a href="{% url 'dashboard:anamneses_list' %}">limpar a busca</a>.
+                            {% else %}
+                                As anamneses aparecerão aqui quando os dados de saúde forem coletados.
+                            {% endif %}
+                        </p>
+                        <a href="{% url 'dashboard:coleta_saude' %}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Coletar Dados de Saúde
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Estatísticas -->
+        <div class="row mt-4">
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Total</h5>
+                        <h2 class="text-primary">{{ paginator.count|default:0 }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Pendentes</h5>
+                        <h2 class="text-warning">{{ stats.pendentes|default:0 }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Concluídas</h5>
+                        <h2 class="text-success">{{ stats.concluidas|default:0 }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Alto Risco</h5>
+                        <h2 class="text-danger">{{ stats.alto_risco|default:0 }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Processar Anamnese -->
+<div class="modal fade" id="processarAnamneseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Processar Anamneses com IA</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Deseja processar todas as anamneses pendentes automaticamente usando IA?</p>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Este processo pode demorar alguns minutos dependendo da quantidade de anamneses.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="processarTodasAnamneses()">
+                    <i class="fas fa-robot me-2"></i>Processar Todas
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('#anamnesesTable').DataTable({
+        "language": {
+            "url": "//cdn.datatables.net/plug-ins/1.13.4/i18n/pt-BR.json"
+        },
+        "pageLength": 25,
+        "responsive": true,
+        "order": [[4, "desc"]], // Ordenar por data de criação
+        "columnDefs": [
+            { "orderable": false, "targets": [6] } // Ações não ordenáveis
+        ]
+    });
+});
+
+function processarAnamnese(anamneseId) {
+    if (confirm('Deseja processar esta anamnese com IA?')) {
+        // Aqui você pode adicionar uma chamada AJAX para processar a anamnese
+        $.post('/ajax/processar-anamnese/', {
+            'anamnese_id': anamneseId,
+            'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+        })
+        .done(function(response) {
+            if (response.success) {
+                alert('Anamnese sendo processada!');
+                location.reload();
+            } else {
+                alert('Erro ao processar anamnese: ' + response.message);
+            }
+        })
+        .fail(function() {
+            alert('Erro de conexão. Tente novamente.');
+        });
+    }
+}
+
+function processarTodasAnamneses() {
+    $('#processarAnamneseModal').modal('hide');
+    
+    // Aqui você pode adicionar uma chamada AJAX para processar todas as anamneses
+    $.post('/ajax/processar-todas-anamneses/', {
+        'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+    })
+    .done(function(response) {
+        if (response.success) {
+            alert('Processamento iniciado! As anamneses serão processadas em segundo plano.');
+            location.reload();
+        } else {
+            alert('Erro ao iniciar processamento: ' + response.message);
+        }
+    })
+    .fail(function() {
+        alert('Erro de conexão. Tente novamente.');
+    });
+}
+</script>
+{% endblock %}

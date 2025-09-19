@@ -1,0 +1,231 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Dashboard - Sistema de Saúde{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-chart-line me-2"></i>Dashboard - Sistema de Saúde Pública</h2>
+        <p class="text-muted">Visão geral dos dados de saúde da população</p>
+    </div>
+</div>
+
+<!-- Cards de Estatísticas -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Cidadãos Cadastrados
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {{ stats.total_cidadaos|default:0 }}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-users fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Com Dados de Saúde
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {{ stats.total_dados_saude|default:0 }}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-heartbeat fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Anamneses Pendentes
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {{ anamneses_pendentes.count|default:0 }}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-danger shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                            Alertas Urgentes
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {{ alertas_urgentes.count|default:0 }}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alertas Urgentes -->
+{% if alertas_urgentes %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-danger text-white">
+                <h6 class="m-0 font-weight-bold">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Alertas Urgentes
+                </h6>
+            </div>
+            <div class="card-body">
+                {% for alerta in alertas_urgentes %}
+                <div class="alert alert-danger" role="alert">
+                    <strong>{{ alerta.cidadao.nome }}</strong> - {{ alerta.tipo_alerta }}
+                    <br><small>{{ alerta.descricao }}</small>
+                    <div class="float-end">
+                        <small class="text-muted">{{ alerta.criado_em|date:"d/m/Y H:i" }}</small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Anamneses Pendentes -->
+{% if anamneses_pendentes %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-warning text-white">
+                <h6 class="m-0 font-weight-bold">
+                    <i class="fas fa-clipboard-list me-2"></i>Anamneses Pendentes
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Cidadão</th>
+                                <th>Tipo</th>
+                                <th>Criado em</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for anamnese in anamneses_pendentes %}
+                            <tr>
+                                <td>{{ anamnese.cidadao.nome }}</td>
+                                <td>{{ anamnese.get_tipo_display }}</td>
+                                <td>{{ anamnese.criado_em|date:"d/m/Y H:i" }}</td>
+                                <td>
+                                    <a href="{% url 'dashboard:anamnese_detail' anamnese.pk %}" 
+                                       class="btn btn-sm btn-primary">
+                                        <i class="fas fa-eye"></i> Ver
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Casos de Alto Risco -->
+{% if casos_alto_risco_hoje %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-info text-white">
+                <h6 class="m-0 font-weight-bold">
+                    <i class="fas fa-user-md me-2"></i>Casos de Alto Risco Hoje
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Cidadão</th>
+                                <th>Risco</th>
+                                <th>Observações</th>
+                                <th>Horário</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for caso in casos_alto_risco_hoje %}
+                            <tr>
+                                <td>{{ caso.cidadao.nome }}</td>
+                                <td>
+                                    <span class="badge bg-{% if caso.triagem_risco == 'critico' %}danger{% else %}warning{% endif %}">
+                                        {{ caso.get_triagem_risco_display }}
+                                    </span>
+                                </td>
+                                <td>{{ caso.observacoes|truncatewords:10 }}</td>
+                                <td>{{ caso.criado_em|date:"H:i" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Mensagem se não há dados -->
+{% if not alertas_urgentes and not anamneses_pendentes and not casos_alto_risco_hoje %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">Sistema Operacional</h4>
+                <p class="text-muted">
+                    Não há alertas urgentes no momento. Comece cadastrando cidadãos e coletando dados de saúde.
+                </p>
+                <a href="{% url 'dashboard:cidadao_create' %}" class="btn btn-primary me-2">
+                    <i class="fas fa-plus me-2"></i>Cadastrar Cidadão
+                </a>
+                <a href="{% url 'dashboard:cidadaos_list' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-users me-2"></i>Ver Cidadãos
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,1 @@
+# Não há migrações ainda para esta app

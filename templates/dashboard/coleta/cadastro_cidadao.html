@@ -1,0 +1,276 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Cadastrar Cidadão{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="fas fa-user-plus me-2"></i>Cadastrar Cidadão</h1>
+                <a href="{% url 'dashboard:cidadaos_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Voltar
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user me-2"></i>Informações do Cidadão
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <!-- Dados Pessoais -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6><i class="fas fa-id-card me-2"></i>Dados Pessoais</h6>
+                                <hr>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.nome.id_for_label }}" class="form-label">Nome Completo *</label>
+                                {{ form.nome }}
+                            </div>
+                            <div class="col-md-3">
+                                <label for="{{ form.cpf.id_for_label }}" class="form-label">CPF *</label>
+                                {{ form.cpf }}
+                            </div>
+                            <div class="col-md-3">
+                                <label for="{{ form.data_nascimento.id_for_label }}" class="form-label">Data de Nascimento *</label>
+                                {{ form.data_nascimento }}
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <label for="{{ form.sexo.id_for_label }}" class="form-label">Sexo *</label>
+                                {{ form.sexo }}
+                            </div>
+                            <div class="col-md-3">
+                                <label for="{{ form.estado_civil.id_for_label }}" class="form-label">Estado Civil</label>
+                                {{ form.estado_civil }}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.profissao.id_for_label }}" class="form-label">Profissão</label>
+                                {{ form.profissao }}
+                            </div>
+                        </div>
+
+                        <!-- Contato -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6><i class="fas fa-phone me-2"></i>Contato</h6>
+                                <hr>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.email.id_for_label }}" class="form-label">E-mail</label>
+                                {{ form.email }}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.telefone.id_for_label }}" class="form-label">Telefone</label>
+                                {{ form.telefone }}
+                            </div>
+                        </div>
+
+                        <!-- Endereço -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6><i class="fas fa-map-marker-alt me-2"></i>Endereço</h6>
+                                <hr>
+                            </div>
+                            <div class="col-md-8">
+                                <label for="{{ form.endereco.id_for_label }}" class="form-label">Endereço</label>
+                                {{ form.endereco }}
+                            </div>
+                            <div class="col-md-4">
+                                <label for="{{ form.cep.id_for_label }}" class="form-label">CEP</label>
+                                {{ form.cep }}
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label for="{{ form.cidade.id_for_label }}" class="form-label">Cidade</label>
+                                {{ form.cidade }}
+                            </div>
+                            <div class="col-md-3">
+                                <label for="{{ form.estado.id_for_label }}" class="form-label">Estado</label>
+                                {{ form.estado }}
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-check mt-4">
+                                    {{ form.possui_plano_saude }}
+                                    <label class="form-check-label" for="{{ form.possui_plano_saude.id_for_label }}">
+                                        Possui Plano de Saúde
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Informações de Saúde -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6><i class="fas fa-heart me-2"></i>Informações de Saúde</h6>
+                                <hr>
+                                <p class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Estas informações serão consideradas em todas as anamneses futuras.
+                                </p>
+                            </div>
+                            
+                            <!-- Condições Crônicas -->
+                            <div class="col-12 mb-3">
+                                <label class="form-label fw-bold">Condições Crônicas Conhecidas:</label>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="form-check">
+                                            {{ form.possui_hipertensao }}
+                                            <label class="form-check-label" for="{{ form.possui_hipertensao.id_for_label }}">
+                                                <i class="fas fa-heartbeat me-1 text-danger"></i>Hipertensão Arterial
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-check">
+                                            {{ form.possui_diabetes }}
+                                            <label class="form-check-label" for="{{ form.possui_diabetes.id_for_label }}">
+                                                <i class="fas fa-tint me-1 text-warning"></i>Diabetes Mellitus
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-check">
+                                            {{ form.possui_doenca_cardiaca }}
+                                            <label class="form-check-label" for="{{ form.possui_doenca_cardiaca.id_for_label }}">
+                                                <i class="fas fa-heart me-1 text-danger"></i>Doença Cardíaca
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-md-4">
+                                        <div class="form-check">
+                                            {{ form.possui_doenca_renal }}
+                                            <label class="form-check-label" for="{{ form.possui_doenca_renal.id_for_label }}">
+                                                <i class="fas fa-kidneys me-1 text-warning"></i>Doença Renal
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-check">
+                                            {{ form.possui_asma }}
+                                            <label class="form-check-label" for="{{ form.possui_asma.id_for_label }}">
+                                                <i class="fas fa-lungs me-1 text-info"></i>Asma
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-check">
+                                            {{ form.possui_depressao }}
+                                            <label class="form-check-label" for="{{ form.possui_depressao.id_for_label }}">
+                                                <i class="fas fa-brain me-1 text-secondary"></i>Depressão/Ansiedade
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Medicamentos e Histórico -->
+                            <div class="col-md-4">
+                                <label for="{{ form.medicamentos_continuo.id_for_label }}" class="form-label">
+                                    <i class="fas fa-pills me-1"></i>Medicamentos de Uso Contínuo
+                                </label>
+                                {{ form.medicamentos_continuo }}
+                                <small class="form-text text-muted">Ex: Losartana 50mg 1x/dia</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="{{ form.alergias_conhecidas.id_for_label }}" class="form-label">
+                                    <i class="fas fa-exclamation-triangle me-1 text-danger"></i>Alergias Conhecidas
+                                </label>
+                                {{ form.alergias_conhecidas }}
+                                <small class="form-text text-muted">Ex: Dipirona, Ibuprofeno</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="{{ form.cirurgias_anteriores.id_for_label }}" class="form-label">
+                                    <i class="fas fa-cut me-1"></i>Cirurgias Anteriores
+                                </label>
+                                {{ form.cirurgias_anteriores }}
+                                <small class="form-text text-muted">Ex: Apendicectomia (2015)</small>
+                            </div>
+                        </div>
+
+                        <!-- Botões -->
+                        <div class="row">
+                            <div class="col-12 text-end">
+                                <a href="{% url 'dashboard:cidadaos_list' %}" class="btn btn-secondary me-2">
+                                    <i class="fas fa-times me-1"></i>Cancelar
+                                </a>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-save me-1"></i>Cadastrar e Prosseguir para Coleta
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Adiciona classes Bootstrap aos campos do formulário
+    const campos = document.querySelectorAll('input, select, textarea');
+    campos.forEach(campo => {
+        if (!campo.classList.contains('form-check-input')) {
+            campo.classList.add('form-control');
+        }
+    });
+    
+    // Campos de checkbox específicos
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.classList.remove('form-control');
+        checkbox.classList.add('form-check-input');
+    });
+
+    // Máscara para CPF
+    const cpfField = document.querySelector('#id_cpf');
+    if (cpfField) {
+        cpfField.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            value = value.replace(/(\d{3})(\d)/, '$1.$2');
+            value = value.replace(/(\d{3})(\d)/, '$1.$2');
+            value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+            e.target.value = value;
+        });
+    }
+
+    // Máscara para telefone
+    const telField = document.querySelector('#id_telefone');
+    if (telField) {
+        telField.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            value = value.replace(/(\d{2})(\d)/, '($1) $2');
+            value = value.replace(/(\d)(\d{4})$/, '$1-$2');
+            e.target.value = value;
+        });
+    }
+
+    // Máscara para CEP
+    const cepField = document.querySelector('#id_cep');
+    if (cepField) {
+        cepField.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            value = value.replace(/(\d{5})(\d)/, '$1-$2');
+            e.target.value = value;
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,447 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Coleta de Dados de Saúde - Sistema de Saúde{% endblock %}
+
+{% block page_title %}Coleta de Dados de Saúde{% endblock %}
+
+{% block page_actions %}
+    <div class="btn-group" role="group">
+        <a href="{% url 'dashboard:coleta_dados' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Voltar
+        </a>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <div class="row">
+        {% if cidadao %}
+        <!-- Informações do Cidadão -->
+        <div class="col-12 mb-4">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-user me-2"></i>Cidadão Selecionado
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Nome:</strong> {{ cidadao.nome }}<br>
+                            <strong>CPF:</strong> {{ cidadao.cpf }}<br>
+                            <strong>Data Nasc.:</strong> {{ cidadao.data_nascimento|date:"d/m/Y" }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Telefone:</strong> {{ cidadao.telefone }}<br>
+                            <strong>Cidade:</strong> {{ cidadao.cidade }}/{{ cidadao.estado }}<br>
+                            <strong>Idade:</strong> {{ cidadao.get_idade }} anos
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Formulário de Coleta -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-heartbeat me-2"></i>
+                        Dados de Saúde e Sintomas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="formColetaSaude">
+                        {% csrf_token %}
+                        {% if cidadao %}
+                            <input type="hidden" name="cidadao" value="{{ cidadao.id }}">
+                        {% endif %}
+                        
+                        <!-- Sinais Vitais -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-thermometer-half me-2"></i>Sinais Vitais
+                                </h6>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="id_pressao_sistolica" class="form-label">
+                                        Pressão Sistólica (mmHg)
+                                    </label>
+                                    <input type="number" class="form-control" id="id_pressao_sistolica" 
+                                           name="pressao_sistolica" min="60" max="250" step="1">
+                                    <small class="text-muted">Normal: 90-140</small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="id_pressao_diastolica" class="form-label">
+                                        Pressão Diastólica (mmHg)
+                                    </label>
+                                    <input type="number" class="form-control" id="id_pressao_diastolica" 
+                                           name="pressao_diastolica" min="40" max="150" step="1">
+                                    <small class="text-muted">Normal: 60-90</small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="id_frequencia_cardiaca" class="form-label">
+                                        Frequência Cardíaca (bpm)
+                                    </label>
+                                    <input type="number" class="form-control" id="id_frequencia_cardiaca" 
+                                           name="frequencia_cardiaca" min="30" max="220" step="1">
+                                    <small class="text-muted">Normal: 60-100</small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="id_temperatura" class="form-label">
+                                        Temperatura (°C)
+                                    </label>
+                                    <input type="number" class="form-control" id="id_temperatura" 
+                                           name="temperatura" min="32" max="45" step="0.1">
+                                    <small class="text-muted">Normal: 36-37.5</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Medidas Físicas -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-weight me-2"></i>Medidas Físicas
+                                </h6>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="id_peso" class="form-label">Peso (kg)</label>
+                                    <input type="number" class="form-control" id="id_peso" 
+                                           name="peso" min="1" max="300" step="0.1">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="id_altura" class="form-label">Altura (cm)</label>
+                                    <input type="number" class="form-control" id="id_altura" 
+                                           name="altura" min="50" max="250" step="1">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">IMC</label>
+                                    <input type="text" class="form-control" id="imc_calculado" 
+                                           readonly placeholder="Será calculado automaticamente">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Sintomas -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-notes-medical me-2"></i>Sintomas e Queixas
+                                </h6>
+                            </div>
+                            
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label for="id_sintomas_principais" class="form-label">
+                                        Sintomas Principais *
+                                    </label>
+                                    <textarea class="form-control" id="id_sintomas_principais" 
+                                              name="sintomas_principais" rows="4" required
+                                              placeholder="Descreva os principais sintomas relatados pelo cidadão..."></textarea>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="id_nivel_dor" class="form-label">
+                                        Nível de Dor (0-10)
+                                    </label>
+                                    <input type="range" class="form-range" id="id_nivel_dor" 
+                                           name="nivel_dor" min="0" max="10" value="0">
+                                    <div class="d-flex justify-content-between">
+                                        <small>0 - Sem dor</small>
+                                        <small id="dor-valor">0</small>
+                                        <small>10 - Dor insuportável</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="id_duracao_sintomas" class="form-label">
+                                        Duração dos Sintomas
+                                    </label>
+                                    <select class="form-select" id="id_duracao_sintomas" name="duracao_sintomas">
+                                        <option value="">Selecione</option>
+                                        <option value="horas">Algumas horas</option>
+                                        <option value="1-2-dias">1-2 dias</option>
+                                        <option value="3-7-dias">3-7 dias</option>
+                                        <option value="1-4-semanas">1-4 semanas</option>
+                                        <option value="mais-1-mes">Mais de 1 mês</option>
+                                        <option value="cronico">Crônico (mais de 3 meses)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Histórico Médico -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-history me-2"></i>Histórico Médico
+                                </h6>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="id_historico_doencas" class="form-label">
+                                        Doenças Preexistentes
+                                    </label>
+                                    <textarea class="form-control" id="id_historico_doencas" 
+                                              name="historico_doencas" rows="3"
+                                              placeholder="Diabetes, hipertensão, cardiopatias, etc."></textarea>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="id_medicamentos_uso" class="form-label">
+                                        Medicamentos em Uso
+                                    </label>
+                                    <textarea class="form-control" id="id_medicamentos_uso" 
+                                              name="medicamentos_uso" rows="3"
+                                              placeholder="Medicamentos atuais, dosagens..."></textarea>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label for="id_alergias" class="form-label">
+                                        Alergias Conhecidas
+                                    </label>
+                                    <input type="text" class="form-control" id="id_alergias" 
+                                           name="alergias" placeholder="Medicamentos, alimentos, outras substâncias...">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Hábitos de Vida -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-heart me-2"></i>Hábitos de Vida
+                                </h6>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   id="id_fumante" name="fumante">
+                                            <label class="form-check-label" for="id_fumante">
+                                                Fumante
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   id="id_etilista" name="etilista">
+                                            <label class="form-check-label" for="id_etilista">
+                                                Consome álcool
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="id_nivel_atividade_fisica" class="form-label">
+                                        Nível de Atividade Física
+                                    </label>
+                                    <select class="form-select" id="id_nivel_atividade_fisica" 
+                                            name="nivel_atividade_fisica">
+                                        <option value="">Selecione</option>
+                                        <option value="sedentario">Sedentário</option>
+                                        <option value="leve">Leve (1-2x/semana)</option>
+                                        <option value="moderado">Moderado (3-4x/semana)</option>
+                                        <option value="intenso">Intenso (5+x/semana)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="id_horas_sono" class="form-label">
+                                        Horas de Sono por Noite
+                                    </label>
+                                    <input type="number" class="form-control" id="id_horas_sono" 
+                                           name="horas_sono" min="1" max="24" step="0.5">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="id_consumo_agua_litros" class="form-label">
+                                        Consumo de Água (litros/dia)
+                                    </label>
+                                    <input type="number" class="form-control" id="id_consumo_agua_litros" 
+                                           name="consumo_agua_litros" min="0" max="10" step="0.1">
+                                </div>
+                                
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" 
+                                           id="id_alimentacao_balanceada" name="alimentacao_balanceada">
+                                    <label class="form-check-label" for="id_alimentacao_balanceada">
+                                        Alimentação balanceada
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Botões -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between">
+                                    <a href="{% url 'dashboard:coleta_dados' %}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-times me-1"></i>Cancelar
+                                    </a>
+                                    <button type="submit" class="btn btn-success" id="btnSalvar">
+                                        <i class="fas fa-stethoscope me-1"></i>Coletar Dados e Gerar Anamnese
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Atualizar valor da dor
+        $('#id_nivel_dor').on('input', function() {
+            $('#dor-valor').text($(this).val());
+        });
+        
+        // Calcular IMC automaticamente
+        $('#id_peso, #id_altura').on('input', function() {
+            calcularIMC();
+        });
+        
+        // Validação dos sinais vitais
+        $('#id_pressao_sistolica, #id_pressao_diastolica').on('blur', function() {
+            validarPressao();
+        });
+        
+        $('#id_frequencia_cardiaca').on('blur', function() {
+            validarFrequenciaCardiaca();
+        });
+        
+        $('#id_temperatura').on('blur', function() {
+            validarTemperatura();
+        });
+        
+        // Submissão do formulário
+        $('#formColetaSaude').on('submit', function(e) {
+            if (!validarFormulario()) {
+                e.preventDefault();
+                return false;
+            }
+            
+            $('#btnSalvar').prop('disabled', true)
+                          .html('<i class="fas fa-spinner fa-spin me-1"></i>Processando...');
+        });
+    });
+    
+    function calcularIMC() {
+        const peso = parseFloat($('#id_peso').val());
+        const altura = parseFloat($('#id_altura').val());
+        
+        if (peso && altura) {
+            const alturaM = altura / 100;
+            const imc = peso / (alturaM * alturaM);
+            
+            let classificacao = '';
+            if (imc < 18.5) classificacao = 'Abaixo do peso';
+            else if (imc < 25) classificacao = 'Peso normal';
+            else if (imc < 30) classificacao = 'Sobrepeso';
+            else if (imc < 35) classificacao = 'Obesidade grau I';
+            else if (imc < 40) classificacao = 'Obesidade grau II';
+            else classificacao = 'Obesidade grau III';
+            
+            $('#imc_calculado').val(`${imc.toFixed(1)} - ${classificacao}`);
+        } else {
+            $('#imc_calculado').val('');
+        }
+    }
+    
+    function validarPressao() {
+        const sistolica = parseInt($('#id_pressao_sistolica').val());
+        const diastolica = parseInt($('#id_pressao_diastolica').val());
+        
+        if (sistolica && diastolica) {
+            if (sistolica <= diastolica) {
+                alert('A pressão sistólica deve ser maior que a diastólica');
+                $('#id_pressao_sistolica').focus();
+            }
+            
+            if (sistolica > 180 || diastolica > 120) {
+                $('#id_pressao_sistolica, #id_pressao_diastolica')
+                    .addClass('border-danger');
+                alert('Atenção: Pressão arterial muito elevada! Caso de emergência.');
+            }
+        }
+    }
+    
+    function validarFrequenciaCardiaca() {
+        const fc = parseInt($('#id_frequencia_cardiaca').val());
+        
+        if (fc) {
+            if (fc < 50 || fc > 150) {
+                $('#id_frequencia_cardiaca').addClass('border-warning');
+            } else {
+                $('#id_frequencia_cardiaca').removeClass('border-warning');
+            }
+        }
+    }
+    
+    function validarTemperatura() {
+        const temp = parseFloat($('#id_temperatura').val());
+        
+        if (temp) {
+            if (temp >= 38) {
+                $('#id_temperatura').addClass('border-danger');
+            } else if (temp < 36) {
+                $('#id_temperatura').addClass('border-warning');
+            } else {
+                $('#id_temperatura').removeClass('border-danger border-warning');
+            }
+        }
+    }
+    
+    function validarFormulario() {
+        let valido = true;
+        
+        // Sintomas principais obrigatório
+        if (!$('#id_sintomas_principais').val().trim()) {
+            $('#id_sintomas_principais').addClass('is-invalid');
+            valido = false;
+        } else {
+            $('#id_sintomas_principais').removeClass('is-invalid');
+        }
+        
+        return valido;
+    }
+</script>
+{% endblock %}

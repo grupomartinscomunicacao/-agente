@@ -1,0 +1,363 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Nova Anamnese - Sistema de Saúde{% endblock %}
+
+{% csrf_token %}
+
+{% block extra_css %}
+<style>
+    .cidadao-card {
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 15px;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    .cidadao-card:hover {
+        border-color: #007bff;
+        background-color: #f8f9fa;
+        transform: translateY(-2px);
+    }
+    .cidadao-card.selected {
+        border-color: #007bff;
+        background-color: #e3f2fd;
+    }
+    .dados-saude-info {
+        background: #f8f9fa;
+        border-left: 4px solid #007bff;
+        padding: 10px;
+        border-radius: 0 5px 5px 0;
+        margin-top: 10px;
+    }
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.7);
+        z-index: 9999;
+        display: none;
+    }
+    .loading-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 40px;
+        border-radius: 10px;
+        text-align: center;
+    }
+    .pulse {
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0 text-gray-800">
+                        <i class="fas fa-robot text-primary"></i> 
+                        Nova Anamnese com IA
+                    </h1>
+                    <p class="mb-0 text-muted">Selecione um cidadão para gerar anamnese automaticamente</p>
+                </div>
+                <div>
+                    <a href="{% url 'dashboard:anamneses_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Voltar para Anamneses
+                    </a>
+                </div>
+            </div>
+
+            <!-- Busca de Cidadão -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-search text-info"></i> Buscar Cidadão
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <input type="text" id="buscaCidadao" class="form-control" 
+                                   placeholder="Digite o nome ou CPF do cidadão...">
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="apenasComDados" checked>
+                                <label class="form-check-label" for="apenasComDados">
+                                    Apenas cidadãos com dados de saúde
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de Cidadãos -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-users text-primary"></i> 
+                        Selecione o Cidadão ({{ cidadaos.count }} encontrados)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="listaCidadaos">
+                        {% for cidadao in cidadaos %}
+                        <div class="cidadao-card" data-cidadao-id="{{ cidadao.id }}" data-nome="{{ cidadao.nome }}" data-cpf="{{ cidadao.cpf }}">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <h6 class="mb-1">
+                                        <i class="fas fa-user text-primary"></i>
+                                        {{ cidadao.nome }}
+                                    </h6>
+                                    <p class="mb-1 text-muted">
+                                        <strong>CPF:</strong> {{ cidadao.cpf }} | 
+                                        <strong>Idade:</strong> {{ cidadao.idade }} anos |
+                                        <strong>Sexo:</strong> {{ cidadao.get_sexo_display }}
+                                    </p>
+                                    {% if cidadao.profissao %}
+                                    <p class="mb-1 text-muted">
+                                        <strong>Profissão:</strong> {{ cidadao.profissao }}
+                                    </p>
+                                    {% endif %}
+                                    
+                                    <!-- Condições Médicas -->
+                                    {% if cidadao.medicamentos_continuo or cidadao.alergias_conhecidas or cidadao.possui_hipertensao or cidadao.possui_diabetes %}
+                                    <div class="mt-2">
+                                        <small class="text-info">
+                                            {% if cidadao.medicamentos_continuo %}<span class="badge bg-warning me-1">Medicamentos</span>{% endif %}
+                                            {% if cidadao.alergias_conhecidas %}<span class="badge bg-danger me-1">Alergias</span>{% endif %}
+                                            {% if cidadao.possui_hipertensao %}<span class="badge bg-info me-1">Hipertensão</span>{% endif %}
+                                            {% if cidadao.possui_diabetes %}<span class="badge bg-secondary me-1">Diabetes</span>{% endif %}
+                                            {% if cidadao.possui_doenca_cardiaca %}<span class="badge bg-danger me-1">Cardíaca</span>{% endif %}
+                                        </small>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4">
+                                    {% with dados_recentes=cidadao.dados_saude.first %}
+                                    {% if dados_recentes %}
+                                    <div class="dados-saude-info">
+                                        <small class="text-muted">
+                                            <strong>Últimos dados:</strong><br>
+                                            {{ dados_recentes.criado_em|date:"d/m/Y H:i" }}<br>
+                                            PA: {{ dados_recentes.pressao_sistolica }}/{{ dados_recentes.pressao_diastolica }}
+                                            {% if dados_recentes.sintomas_principais %}
+                                                <br>{{ dados_recentes.sintomas_principais|truncatechars:50 }}
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                    {% endif %}
+                                    {% endwith %}
+                                    
+                                    <div class="mt-2 text-end">
+                                        <button class="btn btn-primary btn-sm" onclick="selecionarCidadao('{{ cidadao.id }}', '{{ cidadao.nome }}')">
+                                            <i class="fas fa-check"></i> Selecionar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-user-slash fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Nenhum cidadão encontrado</h5>
+                            <p class="text-muted">Não há cidadãos com dados de saúde cadastrados.</p>
+                            <a href="{% url 'dashboard:cidadaos_list' %}" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Cadastrar Cidadão
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-content">
+        <div class="text-center">
+            <i class="fas fa-robot fa-3x text-primary pulse mb-3"></i>
+            <h4 class="text-primary">Gerando Anamnese com IA</h4>
+            <p class="text-muted mb-3">Aguarde enquanto analisamos os dados médicos...</p>
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+            <div class="mt-3">
+                <small class="text-muted" id="loadingStatus">Preparando dados médicos...</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let cidadaoSelecionado = null;
+
+// Busca de cidadãos
+document.getElementById('buscaCidadao').addEventListener('input', function() {
+    const termo = this.value.toLowerCase();
+    const cards = document.querySelectorAll('.cidadao-card');
+    
+    cards.forEach(card => {
+        const nome = card.dataset.nome.toLowerCase();
+        const cpf = card.dataset.cpf.toLowerCase();
+        
+        if (nome.includes(termo) || cpf.includes(termo)) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+});
+
+function selecionarCidadao(cidadaoId, cidadaoNome) {
+    if (confirm(`Gerar anamnese para ${cidadaoNome}?\n\nEsta ação irá usar os dados de saúde mais recentes e gerar uma análise completa com inteligência artificial.`)) {
+        gerarAnamnese(cidadaoId, cidadaoNome);
+    }
+}
+
+function gerarAnamnese(cidadaoId, cidadaoNome) {
+    // Mostra overlay de carregamento
+    document.getElementById('loadingOverlay').style.display = 'block';
+    
+    // Simula progresso
+    const statusMessages = [
+        'Preparando dados médicos...',
+        'Analisando histórico do paciente...',
+        'Consultando IA médica...',
+        'Gerando diagnósticos...',
+        'Finalizando anamnese...'
+    ];
+    
+    let currentStep = 0;
+    const progressInterval = setInterval(() => {
+        if (currentStep < statusMessages.length - 1) {
+            currentStep++;
+            document.getElementById('loadingStatus').textContent = statusMessages[currentStep];
+        }
+    }, 2000);
+    
+    const formData = new FormData();
+    formData.append('cidadao_id', cidadaoId);
+    formData.append('usar_dados_recentes', 'true');
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    
+    fetch('/nova-anamnese/', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response data:', data);
+        clearInterval(progressInterval);
+        
+        if (data.success) {
+            console.log('Success detected, redirect_url:', data.redirect_url);
+            // Sucesso - mostra tela de resultado
+            document.getElementById('loadingStatus').textContent = 'Anamnese processada com sucesso!';
+            
+            // Determina o tipo de operação
+            const isExisting = data.message && data.message.includes('já existe');
+            const icon = isExisting ? 'fas fa-info-circle fa-4x text-info mb-4' : 'fas fa-check-circle fa-4x text-success mb-4';
+            const title = isExisting ? 'Anamnese Encontrada!' : 'Nova Anamnese Gerada!';
+            const status = isExisting ? 'Anamnese Existente' : 'Processamento Completo';
+            const badgeClass = isExisting ? 'bg-info' : 'bg-success';
+            
+            // Cria tela de resultado
+            const loadingContent = document.querySelector('.loading-content');
+            loadingContent.innerHTML = `
+                <div class="text-center">
+                    <i class="${icon}"></i>
+                    <h4 class="mb-3">${title}</h4>
+                    <div class="alert alert-info">
+                        <strong>Cidadão:</strong> ${cidadaoNome}<br>
+                        <strong>Status:</strong> <span class="badge ${badgeClass}">${status}</span><br>
+                        ${data.message ? `<small class="text-muted">${data.message}</small><br>` : ''}
+                        <small><i class="fas fa-clock"></i> Redirecionando automaticamente em <span id="countdown">3</span> segundos...</small>
+                    </div>
+                    <div class="d-flex justify-content-center mt-4">
+                        <button class="btn btn-primary btn-lg" onclick="redirecionar('${data.redirect_url}')">
+                            <i class="fas fa-eye"></i> Ver Anamnese Agora
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Countdown e auto-redirecionar após 3 segundos  
+            console.log('Iniciando countdown para redirecionamento:', data.redirect_url);
+            let countdown = 3;
+            const countdownInterval = setInterval(() => {
+                const countdownElement = document.getElementById('countdown');
+                if (countdownElement) {
+                    countdownElement.textContent = countdown;
+                }
+                console.log('Countdown:', countdown);
+                countdown--;
+                if (countdown < 0) {
+                    clearInterval(countdownInterval);
+                    console.log('Countdown finalizado, redirecionando...');
+                    redirecionar(data.redirect_url);
+                }
+            }, 1000);
+            
+        } else {
+            // Erro - oculta loading e mostra erro
+            document.getElementById('loadingOverlay').style.display = 'none';
+            alert('Erro ao gerar anamnese: ' + data.error);
+        }
+    })
+    .catch(error => {
+        clearInterval(progressInterval);
+        document.getElementById('loadingOverlay').style.display = 'none';
+        console.error('Erro:', error);
+        alert('Erro de rede ao gerar anamnese');
+    });
+}
+
+function redirecionar(url) {
+    console.log('Função redirecionar chamada com URL:', url);
+    if (!url) {
+        console.error('URL de redirecionamento está vazia!');
+        return;
+    }
+    console.log('Redirecionando para:', url);
+    window.location.href = url;
+}
+
+// Adiciona efeito hover nos cards
+document.addEventListener('DOMContentLoaded', function() {
+    const cards = document.querySelectorAll('.cidadao-card');
+    
+    cards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.classList.add('shadow');
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.classList.remove('shadow');
+        });
+    });
+});
+</script>
+{% endblock %}

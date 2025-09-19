@@ -1,0 +1,338 @@
+{% extends 'dashboard/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Cadastro de Cidadão - Sistema de Saúde{% endblock %}
+
+{% block page_title %}Cadastro de Cidadão{% endblock %}
+
+{% block page_actions %}
+    <div class="btn-group" role="group">
+        <a href="{% url 'dashboard:coleta_dados' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Voltar
+        </a>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-user-plus me-2"></i>
+                        Dados Pessoais do Cidadão
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="formCadastroCidadao">
+                        {% csrf_token %}
+                        
+                        <!-- Informações Pessoais -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-user me-2"></i>Informações Pessoais
+                                </h6>
+                            </div>
+                            
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label for="id_nome" class="form-label">Nome Completo *</label>
+                                    <input type="text" class="form-control" id="id_nome" name="nome" 
+                                           required maxlength="200">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="id_cpf" class="form-label">CPF *</label>
+                                    <input type="text" class="form-control" id="id_cpf" name="cpf" 
+                                           data-mask="cpf" required maxlength="14">
+                                    <div class="invalid-feedback" id="cpf-feedback"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="id_data_nascimento" class="form-label">Data de Nascimento *</label>
+                                    <input type="date" class="form-control" id="id_data_nascimento" 
+                                           name="data_nascimento" required>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="id_sexo" class="form-label">Sexo *</label>
+                                    <select class="form-select" id="id_sexo" name="sexo" required>
+                                        <option value="">Selecione</option>
+                                        <option value="M">Masculino</option>
+                                        <option value="F">Feminino</option>
+                                        <option value="O">Outro</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="id_estado_civil" class="form-label">Estado Civil</label>
+                                    <select class="form-select" id="id_estado_civil" name="estado_civil">
+                                        <option value="">Selecione</option>
+                                        <option value="solteiro">Solteiro(a)</option>
+                                        <option value="casado">Casado(a)</option>
+                                        <option value="divorciado">Divorciado(a)</option>
+                                        <option value="viuvo">Viúvo(a)</option>
+                                        <option value="uniao_estavel">União Estável</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Contato -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-phone me-2"></i>Contato
+                                </h6>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="id_telefone" class="form-label">Telefone *</label>
+                                    <input type="text" class="form-control" id="id_telefone" name="telefone" 
+                                           data-mask="telefone" required maxlength="15">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="id_email" class="form-label">E-mail</label>
+                                    <input type="email" class="form-control" id="id_email" name="email" 
+                                           maxlength="254">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Endereço -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-map-marker-alt me-2"></i>Endereço
+                                </h6>
+                            </div>
+                            
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label for="id_endereco" class="form-label">Endereço Completo</label>
+                                    <input type="text" class="form-control" id="id_endereco" name="endereco" 
+                                           maxlength="300" placeholder="Rua, número, complemento">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="id_cep" class="form-label">CEP</label>
+                                    <input type="text" class="form-control" id="id_cep" name="cep" 
+                                           maxlength="9" placeholder="00000-000">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="id_bairro" class="form-label">Bairro</label>
+                                    <input type="text" class="form-control" id="id_bairro" name="bairro" 
+                                           maxlength="100">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="id_cidade" class="form-label">Cidade</label>
+                                    <input type="text" class="form-control" id="id_cidade" name="cidade" 
+                                           maxlength="100">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="id_estado" class="form-label">Estado</label>
+                                    <select class="form-select" id="id_estado" name="estado">
+                                        <option value="">Selecione</option>
+                                        <option value="AC">Acre</option>
+                                        <option value="AL">Alagoas</option>
+                                        <option value="AP">Amapá</option>
+                                        <option value="AM">Amazonas</option>
+                                        <option value="BA">Bahia</option>
+                                        <option value="CE">Ceará</option>
+                                        <option value="DF">Distrito Federal</option>
+                                        <option value="ES">Espírito Santo</option>
+                                        <option value="GO">Goiás</option>
+                                        <option value="MA">Maranhão</option>
+                                        <option value="MT">Mato Grosso</option>
+                                        <option value="MS">Mato Grosso do Sul</option>
+                                        <option value="MG">Minas Gerais</option>
+                                        <option value="PA">Pará</option>
+                                        <option value="PB">Paraíba</option>
+                                        <option value="PR">Paraná</option>
+                                        <option value="PE">Pernambuco</option>
+                                        <option value="PI">Piauí</option>
+                                        <option value="RJ">Rio de Janeiro</option>
+                                        <option value="RN">Rio Grande do Norte</option>
+                                        <option value="RS">Rio Grande do Sul</option>
+                                        <option value="RO">Rondônia</option>
+                                        <option value="RR">Roraima</option>
+                                        <option value="SC">Santa Catarina</option>
+                                        <option value="SP">São Paulo</option>
+                                        <option value="SE">Sergipe</option>
+                                        <option value="TO">Tocantins</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Informações Complementares -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-info-circle me-2"></i>Informações Complementares
+                                </h6>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="id_profissao" class="form-label">Profissão</label>
+                                    <input type="text" class="form-control" id="id_profissao" name="profissao" 
+                                           maxlength="100">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="id_renda_familiar" class="form-label">Renda Familiar (R$)</label>
+                                    <input type="number" class="form-control" id="id_renda_familiar" 
+                                           name="renda_familiar" step="0.01" min="0">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="id_possui_plano_saude" 
+                                               name="possui_plano_saude">
+                                        <label class="form-check-label" for="id_possui_plano_saude">
+                                            Possui plano de saúde
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Botões -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between">
+                                    <a href="{% url 'dashboard:coleta_dados' %}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-times me-1"></i>Cancelar
+                                    </a>
+                                    <button type="submit" class="btn btn-primary" id="btnSalvar">
+                                        <i class="fas fa-save me-1"></i>Salvar e Continuar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Validação em tempo real do CPF
+        $('#id_cpf').on('blur', function() {
+            const cpf = $(this).val();
+            if (cpf) {
+                validarCPF(cpf, function(data) {
+                    const input = $('#id_cpf');
+                    const feedback = $('#cpf-feedback');
+                    
+                    if (data.valido) {
+                        input.removeClass('is-invalid').addClass('is-valid');
+                        if (data.cpf_existe) {
+                            feedback.text('CPF já cadastrado no sistema').show();
+                            input.removeClass('is-valid').addClass('is-invalid');
+                        } else {
+                            input.val(data.cpf_formatado);
+                        }
+                    } else {
+                        input.removeClass('is-valid').addClass('is-invalid');
+                        feedback.text('CPF inválido').show();
+                    }
+                });
+            }
+        });
+        
+        // Buscar endereço por CEP
+        $('#id_cep').on('blur', function() {
+            const cep = $(this).val().replace(/\D/g, '');
+            if (cep.length === 8) {
+                consultarCEP(cep);
+            }
+        });
+        
+        // Validação do formulário
+        $('#formCadastroCidadao').on('submit', function(e) {
+            if (!validarFormulario()) {
+                e.preventDefault();
+                return false;
+            }
+            
+            $('#btnSalvar').prop('disabled', true)
+                          .html('<i class="fas fa-spinner fa-spin me-1"></i>Salvando...');
+        });
+    });
+    
+    function consultarCEP(cep) {
+        $.get(`https://viacep.com.br/ws/${cep}/json/`, function(data) {
+            if (!data.erro) {
+                $('#id_endereco').val(data.logradouro);
+                $('#id_bairro').val(data.bairro);
+                $('#id_cidade').val(data.localidade);
+                $('#id_estado').val(data.uf);
+            }
+        }).fail(function() {
+            console.log('Erro ao consultar CEP');
+        });
+    }
+    
+    function validarFormulario() {
+        let valido = true;
+        
+        // Campos obrigatórios
+        const obrigatorios = ['#id_nome', '#id_cpf', '#id_data_nascimento', '#id_sexo', '#id_telefone'];
+        
+        obrigatorios.forEach(function(campo) {
+            const input = $(campo);
+            if (!input.val().trim()) {
+                input.addClass('is-invalid');
+                valido = false;
+            } else {
+                input.removeClass('is-invalid');
+            }
+        });
+        
+        // Validar idade mínima
+        const dataNasc = new Date($('#id_data_nascimento').val());
+        const hoje = new Date();
+        const idade = hoje.getFullYear() - dataNasc.getFullYear();
+        
+        if (idade < 0 || idade > 120) {
+            $('#id_data_nascimento').addClass('is-invalid');
+            valido = false;
+        }
+        
+        return valido;
+    }
+</script>
+{% endblock %}

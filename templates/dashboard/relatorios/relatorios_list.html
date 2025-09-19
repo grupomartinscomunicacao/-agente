@@ -1,0 +1,427 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Relatórios - Sistema de Saúde{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-chart-bar me-2"></i>Relatórios</h2>
+            <div>
+                <button class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#gerarRelatorioModal">
+                    <i class="fas fa-plus me-2"></i>Gerar Novo Relatório
+                </button>
+                <a href="{% url 'dashboard:dashboard' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Voltar
+                </a>
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="tipo" class="form-label">Tipo de Relatório</label>
+                        <select class="form-select" id="tipo" name="tipo">
+                            <option value="">Todos os tipos</option>
+                            <option value="demografico" {% if request.GET.tipo == "demografico" %}selected{% endif %}>Demográfico</option>
+                            <option value="epidemiologico" {% if request.GET.tipo == "epidemiologico" %}selected{% endif %}>Epidemiológico</option>
+                            <option value="triagem" {% if request.GET.tipo == "triagem" %}selected{% endif %}>Triagem de Risco</option>
+                            <option value="anamneses" {% if request.GET.tipo == "anamneses" %}selected{% endif %}>Anamneses</option>
+                            <option value="alertas" {% if request.GET.tipo == "alertas" %}selected{% endif %}>Alertas</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="publicado" class="form-label">Status</label>
+                        <select class="form-select" id="publicado" name="publicado">
+                            <option value="">Todos os status</option>
+                            <option value="true" {% if request.GET.publicado == "true" %}selected{% endif %}>Publicado</option>
+                            <option value="false" {% if request.GET.publicado == "false" %}selected{% endif %}>Rascunho</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="periodo" class="form-label">Período</label>
+                        <select class="form-select" id="periodo" name="periodo">
+                            <option value="">Todos os períodos</option>
+                            <option value="hoje" {% if request.GET.periodo == "hoje" %}selected{% endif %}>Hoje</option>
+                            <option value="semana" {% if request.GET.periodo == "semana" %}selected{% endif %}>Esta Semana</option>
+                            <option value="mes" {% if request.GET.periodo == "mes" %}selected{% endif %}>Este Mês</option>
+                            <option value="trimestre" {% if request.GET.periodo == "trimestre" %}selected{% endif %}>Último Trimestre</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-search"></i> Filtrar
+                        </button>
+                        <a href="{% url 'dashboard:relatorios' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i> Limpar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Lista de Relatórios -->
+        <div class="card">
+            <div class="card-body">
+                {% if relatorios %}
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="relatoriosTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Título</th>
+                                    <th>Tipo</th>
+                                    <th>Período</th>
+                                    <th>Gerado por</th>
+                                    <th>Data</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for relatorio in relatorios %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ relatorio.titulo }}</strong>
+                                        {% if relatorio.descricao %}
+                                            <br><small class="text-muted">{{ relatorio.descricao|truncatewords:10 }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ relatorio.get_tipo_display }}</span>
+                                    </td>
+                                    <td>
+                                        {% if relatorio.periodo_inicio %}
+                                            {{ relatorio.periodo_inicio|date:"d/m/Y" }}
+                                            {% if relatorio.periodo_fim %}
+                                                - {{ relatorio.periodo_fim|date:"d/m/Y" }}
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {{ relatorio.gerado_por.username|default:"Sistema" }}
+                                        {% if relatorio.gerado_por.first_name %}
+                                            <br><small class="text-muted">{{ relatorio.gerado_por.first_name }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {{ relatorio.criado_em|date:"d/m/Y" }}
+                                        <br><small class="text-muted">{{ relatorio.criado_em|date:"H:i" }}</small>
+                                    </td>
+                                    <td>
+                                        {% if relatorio.publicado %}
+                                            <span class="badge bg-success">Publicado</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Rascunho</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{% url 'dashboard:relatorio_detail' relatorio.pk %}" 
+                                               class="btn btn-outline-primary" title="Ver Relatório">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if relatorio.conteudo %}
+                                                <button class="btn btn-outline-success" 
+                                                        onclick="baixarRelatorio('{{ relatorio.pk }}')" 
+                                                        title="Baixar PDF">
+                                                    <i class="fas fa-download"></i>
+                                                </button>
+                                            {% endif %}
+                                            {% if not relatorio.publicado %}
+                                                <button class="btn btn-outline-info" 
+                                                        onclick="publicarRelatorio('{{ relatorio.pk }}')" 
+                                                        title="Publicar">
+                                                    <i class="fas fa-share"></i>
+                                                </button>
+                                            {% endif %}
+                                            <button class="btn btn-outline-danger" 
+                                                    onclick="excluirRelatorio('{{ relatorio.pk }}')" 
+                                                    title="Excluir">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Paginação -->
+                    {% if is_paginated %}
+                        <nav aria-label="Paginação">
+                            <ul class="pagination justify-content-center mt-4">
+                                {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page=1" title="Primeira">
+                                            <i class="fas fa-angle-double-left"></i>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}" title="Anterior">
+                                            <i class="fas fa-angle-left"></i>
+                                        </a>
+                                    </li>
+                                {% endif %}
+
+                                {% for num in page_obj.paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ num }}</span>
+                                        </li>
+                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}" title="Próxima">
+                                            <i class="fas fa-angle-right"></i>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.paginator.num_pages }}" title="Última">
+                                            <i class="fas fa-angle-double-right"></i>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    {% endif %}
+
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+                        <h4 class="text-muted">Nenhum relatório encontrado</h4>
+                        <p class="text-muted">
+                            {% if request.GET.tipo or request.GET.publicado or request.GET.periodo %}
+                                Tente ajustar os filtros ou 
+                                <a href="{% url 'dashboard:relatorios' %}">limpar a busca</a>.
+                            {% else %}
+                                Comece gerando seu primeiro relatório.
+                            {% endif %}
+                        </p>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#gerarRelatorioModal">
+                            <i class="fas fa-plus me-2"></i>Gerar Primeiro Relatório
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Estatísticas -->
+        <div class="row mt-4">
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Total</h5>
+                        <h2 class="text-primary">{{ paginator.count|default:0 }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Publicados</h5>
+                        <h2 class="text-success">{{ stats.publicados|default:0 }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Rascunhos</h5>
+                        <h2 class="text-warning">{{ stats.rascunhos|default:0 }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Este Mês</h5>
+                        <h2 class="text-info">{{ stats.este_mes|default:0 }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Gerar Relatório -->
+<div class="modal fade" id="gerarRelatorioModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Gerar Novo Relatório</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="gerarRelatorioForm">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="relatorio_titulo" class="form-label">Título do Relatório *</label>
+                                <input type="text" class="form-control" id="relatorio_titulo" name="titulo" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="relatorio_tipo" class="form-label">Tipo de Relatório *</label>
+                                <select class="form-select" id="relatorio_tipo" name="tipo" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="demografico">Demográfico</option>
+                                    <option value="epidemiologico">Epidemiológico</option>
+                                    <option value="triagem">Triagem de Risco</option>
+                                    <option value="anamneses">Anamneses</option>
+                                    <option value="alertas">Alertas</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="periodo_inicio" class="form-label">Data Início *</label>
+                                <input type="date" class="form-control" id="periodo_inicio" name="periodo_inicio" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="periodo_fim" class="form-label">Data Fim *</label>
+                                <input type="date" class="form-control" id="periodo_fim" name="periodo_fim" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="relatorio_descricao" class="form-label">Descrição</label>
+                        <textarea class="form-control" id="relatorio_descricao" name="descricao" rows="3" 
+                                  placeholder="Descrição opcional do relatório"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="auto_publicar" name="auto_publicar">
+                            <label class="form-check-label" for="auto_publicar">
+                                Publicar automaticamente após geração
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-cog me-2"></i>Gerar Relatório
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('#relatoriosTable').DataTable({
+        "language": {
+            "url": "//cdn.datatables.net/plug-ins/1.13.4/i18n/pt-BR.json"
+        },
+        "pageLength": 25,
+        "responsive": true,
+        "order": [[4, "desc"]], // Ordenar por data
+        "columnDefs": [
+            { "orderable": false, "targets": [6] } // Ações não ordenáveis
+        ]
+    });
+
+    // Configurar datas padrão no modal
+    const hoje = new Date();
+    const primeiroDiaDoMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    
+    $('#periodo_inicio').val(primeiroDiaDoMes.toISOString().split('T')[0]);
+    $('#periodo_fim').val(hoje.toISOString().split('T')[0]);
+});
+
+$('#gerarRelatorioForm').on('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    $.ajax({
+        url: '{% url "dashboard:gerar_relatorio" %}',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(response) {
+            if (response.success) {
+                $('#gerarRelatorioModal').modal('hide');
+                alert('Relatório está sendo gerado! Aguarde alguns instantes.');
+                location.reload();
+            } else {
+                alert('Erro ao gerar relatório: ' + response.message);
+            }
+        },
+        error: function() {
+            alert('Erro de conexão. Tente novamente.');
+        }
+    });
+});
+
+function baixarRelatorio(relatorioId) {
+    window.open('/dashboard/relatorios/' + relatorioId + '/download/', '_blank');
+}
+
+function publicarRelatorio(relatorioId) {
+    if (confirm('Publicar este relatório?')) {
+        $.post('/dashboard/relatorios/' + relatorioId + '/publicar/', {
+            'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+        })
+        .done(function(response) {
+            if (response.success) {
+                alert('Relatório publicado com sucesso!');
+                location.reload();
+            } else {
+                alert('Erro ao publicar relatório: ' + response.message);
+            }
+        })
+        .fail(function() {
+            alert('Erro de conexão. Tente novamente.');
+        });
+    }
+}
+
+function excluirRelatorio(relatorioId) {
+    if (confirm('Tem certeza que deseja excluir este relatório? Esta ação não pode ser desfeita.')) {
+        $.ajax({
+            url: '/dashboard/relatorios/' + relatorioId + '/excluir/',
+            type: 'DELETE',
+            data: {
+                'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    alert('Relatório excluído com sucesso!');
+                    location.reload();
+                } else {
+                    alert('Erro ao excluir relatório: ' + response.message);
+                }
+            },
+            error: function() {
+                alert('Erro de conexão. Tente novamente.');
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

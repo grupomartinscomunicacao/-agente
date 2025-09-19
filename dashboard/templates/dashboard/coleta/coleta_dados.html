@@ -1,0 +1,206 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Coleta de Dados - Sistema de Saúde{% endblock %}
+
+{% block page_title %}Coleta de Dados{% endblock %}
+
+{% block page_actions %}
+    <div class="btn-group" role="group">
+        <a href="{% url 'dashboard:dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Voltar ao Dashboard
+        </a>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-clipboard-list me-2"></i>
+                        Processo de Coleta de Dados
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">
+                        Siga os passos abaixo para realizar uma coleta completa de dados de saúde do cidadão.
+                    </p>
+                    
+                    <!-- Processo de Coleta -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="card-title mb-0">
+                                        <i class="fas fa-user-plus me-2"></i>
+                                        Passo 1: Cadastro do Cidadão
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text">
+                                        Cadastre um novo cidadão ou busque por um existente no sistema.
+                                    </p>
+                                    <a href="{% url 'dashboard:cadastro_cidadao' %}" class="btn btn-primary">
+                                        <i class="fas fa-plus me-1"></i>Novo Cadastro
+                                    </a>
+                                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalBuscarCidadao">
+                                        <i class="fas fa-search me-1"></i>Buscar Existente
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card border-success">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="card-title mb-0">
+                                        <i class="fas fa-heartbeat me-2"></i>
+                                        Passo 2: Dados de Saúde
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text">
+                                        Colete os dados de saúde do cidadão: sintomas, histórico médico, sinais vitais.
+                                    </p>
+                                    <p class="text-muted small">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Será redirecionado automaticamente após o cadastro
+                                    </p>
+                                    <button class="btn btn-success" disabled>
+                                        <i class="fas fa-clipboard-check me-1"></i>Coletar Dados
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Estatísticas Rápidas -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h6 class="mb-3">Resumo das Atividades</h6>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <div class="text-center p-3 border rounded">
+                                <i class="fas fa-user-check text-primary fa-2x mb-2"></i>
+                                <h5 class="mb-1">{{ stats.total_cidadaos_cadastrados }}</h5>
+                                <small class="text-muted">Cidadãos Cadastrados</small>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <div class="text-center p-3 border rounded">
+                                <i class="fas fa-chart-line text-success fa-2x mb-2"></i>
+                                <h5 class="mb-1">{{ stats.total_atendimentos_hoje }}</h5>
+                                <small class="text-muted">Coletas Hoje</small>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <div class="text-center p-3 border rounded">
+                                <i class="fas fa-clock text-warning fa-2x mb-2"></i>
+                                <h5 class="mb-1">{{ stats.total_anamneses_pendentes }}</h5>
+                                <small class="text-muted">Processando</small>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <div class="text-center p-3 border rounded">
+                                <i class="fas fa-exclamation-triangle text-danger fa-2x mb-2"></i>
+                                <h5 class="mb-1">{{ stats.casos_risco_alto_hoje }}</h5>
+                                <small class="text-muted">Alto Risco</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Links Rápidos -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h6 class="mb-3">Acesso Rápido</h6>
+                            <div class="d-flex flex-wrap gap-2">
+                                <a href="{% url 'dashboard:cidadaos_list' %}" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-users me-1"></i>Lista de Cidadãos
+                                </a>
+                                <a href="{% url 'dashboard:anamneses_list' %}" class="btn btn-outline-success btn-sm">
+                                    <i class="fas fa-stethoscope me-1"></i>Anamneses
+                                </a>
+                                <a href="{% url 'dashboard:alertas' %}" class="btn btn-outline-warning btn-sm">
+                                    <i class="fas fa-bell me-1"></i>Alertas
+                                </a>
+                                <a href="{% url 'dashboard:relatorios' %}" class="btn btn-outline-info btn-sm">
+                                    <i class="fas fa-file-alt me-1"></i>Relatórios
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Buscar Cidadão -->
+    <div class="modal fade" id="modalBuscarCidadao" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-search me-2"></i>Buscar Cidadão
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formBuscarCidadao">
+                        <div class="mb-3">
+                            <label for="busca" class="form-label">Buscar por Nome ou CPF</label>
+                            <input type="text" class="form-control" id="busca" 
+                                   placeholder="Digite o nome ou CPF do cidadão">
+                        </div>
+                        <div id="resultadosBusca" class="mt-3"></div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-primary" onclick="buscarCidadao()">
+                        <i class="fas fa-search me-1"></i>Buscar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function buscarCidadao() {
+        const termo = document.getElementById('busca').value;
+        const resultados = document.getElementById('resultadosBusca');
+        
+        if (!termo.trim()) {
+            resultados.innerHTML = '<div class="alert alert-warning">Digite um termo para buscar</div>';
+            return;
+        }
+        
+        resultados.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Buscando...</div>';
+        
+        // Simular busca - em produção seria uma chamada AJAX real
+        setTimeout(() => {
+            resultados.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Funcionalidade de busca será implementada em breve.
+                    Por enquanto, use a <a href="{% url 'dashboard:cidadaos_list' %}" class="alert-link">lista completa de cidadãos</a>.
+                </div>
+            `;
+        }, 1000);
+    }
+    
+    // Buscar ao pressionar Enter
+    document.getElementById('busca').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            buscarCidadao();
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,285 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Coleta de Dados de Saúde{% endblock %}
+
+{% block extra_css %}
+<style>
+    .info-previas {
+        background: #e8f4fd;
+        border-left: 4px solid #007bff;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .condicoes-cronicas {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }
+    .condicoes-cronicas .badge {
+        font-size: 0.85rem;
+    }
+    .alert-info-previa {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        color: #856404;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="fas fa-stethoscope me-2"></i>Coleta de Dados de Saúde</h1>
+                <a href="{% url 'dashboard:cidadaos_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Voltar
+                </a>
+            </div>
+
+            {% if cidadao %}
+            <!-- Informações Prévias do Cidadão -->
+            <div class="info-previas">
+                <h5><i class="fas fa-user-md me-2"></i>Paciente: {{ cidadao.nome }}</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="mb-2"><strong>CPF:</strong> {{ cidadao.cpf }}</p>
+                        <p class="mb-2"><strong>Idade:</strong> {{ cidadao.idade }} anos</p>
+                        <p class="mb-2"><strong>Profissão:</strong> {{ cidadao.profissao|default:"Não informado" }}</p>
+                        <p class="mb-2"><strong>Plano de Saúde:</strong> 
+                            {% if cidadao.possui_plano_saude %}
+                                <span class="badge bg-success">Sim</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Não</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-heart me-1"></i>Condições Crônicas Conhecidas:</h6>
+                        <div class="condicoes-cronicas">
+                            {% if cidadao.possui_hipertensao %}
+                                <span class="badge bg-warning">Hipertensão</span>
+                            {% endif %}
+                            {% if cidadao.possui_diabetes %}
+                                <span class="badge bg-warning">Diabetes</span>
+                            {% endif %}
+                            {% if cidadao.possui_doenca_cardiaca %}
+                                <span class="badge bg-danger">Doença Cardíaca</span>
+                            {% endif %}
+                            {% if cidadao.possui_doenca_renal %}
+                                <span class="badge bg-danger">Doença Renal</span>
+                            {% endif %}
+                            {% if cidadao.possui_asma %}
+                                <span class="badge bg-info">Asma</span>
+                            {% endif %}
+                            {% if cidadao.possui_depressao %}
+                                <span class="badge bg-secondary">Depressão/Ansiedade</span>
+                            {% endif %}
+                            {% if not cidadao.condicoes_saude_cronicas %}
+                                <span class="badge bg-success">Nenhuma condição crônica conhecida</span>
+                            {% endif %}
+                        </div>
+
+                        {% if cidadao.medicamentos_continuo %}
+                        <div class="mt-2">
+                            <h6><i class="fas fa-pills me-1"></i>Medicamentos de Uso Contínuo:</h6>
+                            <small class="text-muted">{{ cidadao.medicamentos_continuo }}</small>
+                        </div>
+                        {% endif %}
+
+                        {% if cidadao.alergias_conhecidas %}
+                        <div class="mt-2">
+                            <h6><i class="fas fa-exclamation-triangle me-1 text-danger"></i>Alergias Conhecidas:</h6>
+                            <small class="text-danger">{{ cidadao.alergias_conhecidas }}</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if cidadao.cirurgias_anteriores %}
+                <div class="mt-2">
+                    <h6><i class="fas fa-cut me-1"></i>Histórico Cirúrgico:</h6>
+                    <small class="text-muted">{{ cidadao.cirurgias_anteriores }}</small>
+                </div>
+                {% endif %}
+
+                <div class="alert alert-info-previa mt-3 mb-0">
+                    <i class="fas fa-info-circle me-1"></i>
+                    <strong>Estas informações serão consideradas automaticamente na anamnese.</strong>
+                    Colete apenas os dados de saúde atuais do paciente.
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Formulário de Coleta -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clipboard-list me-2"></i>Dados de Saúde Atuais
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        {% if cidadao %}
+                            <input type="hidden" name="cidadao" value="{{ cidadao.id }}">
+                        {% endif %}
+
+                        <!-- Sinais Vitais -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6><i class="fas fa-heartbeat me-2"></i>Sinais Vitais</h6>
+                                <hr>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="{{ form.pressao_sistolica.id_for_label }}" class="form-label">Pressão Sistólica (mmHg)</label>
+                                {{ form.pressao_sistolica }}
+                            </div>
+                            <div class="col-md-3">
+                                <label for="{{ form.pressao_diastolica.id_for_label }}" class="form-label">Pressão Diastólica (mmHg)</label>
+                                {{ form.pressao_diastolica }}
+                            </div>
+                            <div class="col-md-3">
+                                <label for="{{ form.frequencia_cardiaca.id_for_label }}" class="form-label">Frequência Cardíaca (bpm)</label>
+                                {{ form.frequencia_cardiaca }}
+                            </div>
+                            <div class="col-md-3">
+                                <label for="{{ form.temperatura.id_for_label }}" class="form-label">Temperatura (°C)</label>
+                                {{ form.temperatura }}
+                            </div>
+                        </div>
+
+                        <!-- Antropometria -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6><i class="fas fa-weight me-2"></i>Antropometria</h6>
+                                <hr>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.peso.id_for_label }}" class="form-label">Peso (kg)</label>
+                                {{ form.peso }}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.altura.id_for_label }}" class="form-label">Altura (m)</label>
+                                {{ form.altura }}
+                            </div>
+                        </div>
+
+                        <!-- Sintomas Atuais -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6><i class="fas fa-thermometer-half me-2"></i>Sintomas Atuais</h6>
+                                <hr>
+                            </div>
+                            <div class="col-md-8">
+                                <label for="{{ form.sintomas_principais.id_for_label }}" class="form-label">Sintomas Principais</label>
+                                {{ form.sintomas_principais }}
+                            </div>
+                            <div class="col-md-2">
+                                <label for="{{ form.nivel_dor.id_for_label }}" class="form-label">Nível de Dor (0-10)</label>
+                                {{ form.nivel_dor }}
+                            </div>
+                            <div class="col-md-2">
+                                <label for="{{ form.duracao_sintomas.id_for_label }}" class="form-label">Duração (dias)</label>
+                                {{ form.duracao_sintomas }}
+                            </div>
+                        </div>
+
+                        <!-- Histórico Médico Atual -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6><i class="fas fa-notes-medical me-2"></i>Histórico Médico de Hoje</h6>
+                                <hr>
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Informe apenas medicamentos/condições relatadas hoje. 
+                                    O histórico crônico já está registrado acima.
+                                </small>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="{{ form.historico_doencas.id_for_label }}" class="form-label">Doenças/Condições Hoje</label>
+                                {{ form.historico_doencas }}
+                            </div>
+                            <div class="col-md-4">
+                                <label for="{{ form.medicamentos_uso.id_for_label }}" class="form-label">Medicamentos Hoje</label>
+                                {{ form.medicamentos_uso }}
+                            </div>
+                            <div class="col-md-4">
+                                <label for="{{ form.alergias.id_for_label }}" class="form-label">Alergias Reportadas</label>
+                                {{ form.alergias }}
+                            </div>
+                        </div>
+
+                        <!-- Hábitos de Vida -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6><i class="fas fa-running me-2"></i>Hábitos de Vida</h6>
+                                <hr>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="{{ form.fumante.id_for_label }}" class="form-label">Fumante</label>
+                                {{ form.fumante }}
+                            </div>
+                            <div class="col-md-2">
+                                <label for="{{ form.etilista.id_for_label }}" class="form-label">Etilista</label>
+                                {{ form.etilista }}
+                            </div>
+                            <div class="col-md-3">
+                                <label for="{{ form.nivel_atividade_fisica.id_for_label }}" class="form-label">Atividade Física</label>
+                                {{ form.nivel_atividade_fisica }}
+                            </div>
+                            <div class="col-md-2">
+                                <label for="{{ form.horas_sono.id_for_label }}" class="form-label">Horas de Sono</label>
+                                {{ form.horas_sono }}
+                            </div>
+                            <div class="col-md-1">
+                                <label for="{{ form.alimentacao_balanceada.id_for_label }}" class="form-label">Alimentação</label>
+                                {{ form.alimentacao_balanceada }}
+                            </div>
+                            <div class="col-md-2">
+                                <label for="{{ form.consumo_agua_litros.id_for_label }}" class="form-label">Água (litros/dia)</label>
+                                {{ form.consumo_agua_litros }}
+                            </div>
+                        </div>
+
+                        <!-- Botões -->
+                        <div class="row">
+                            <div class="col-12 text-end">
+                                <a href="{% url 'dashboard:cidadaos_list' %}" class="btn btn-secondary me-2">
+                                    <i class="fas fa-times me-1"></i>Cancelar
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-1"></i>Salvar e Gerar Anamnese
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Adiciona classes Bootstrap aos campos do formulário
+    const campos = document.querySelectorAll('input, select, textarea');
+    campos.forEach(campo => {
+        if (!campo.classList.contains('form-check-input')) {
+            campo.classList.add('form-control');
+        }
+    });
+    
+    // Campos de checkbox específicos
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.classList.remove('form-control');
+        checkbox.classList.add('form-check-input');
+    });
+});
+</script>
+{% endblock %}

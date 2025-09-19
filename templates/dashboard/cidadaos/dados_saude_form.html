@@ -1,0 +1,380 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block title %}Dados de Saúde - {{ cidadao.nome }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .section-title {
+        color: #2c3e50;
+        border-bottom: 2px solid #3498db;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+    }
+    .required-field::after {
+        content: " *";
+        color: #e74c3c;
+    }
+    .form-control:focus {
+        border-color: #3498db;
+        box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+    }
+    .btn-primary {
+        background-color: #3498db;
+        border-color: #3498db;
+    }
+    .btn-primary:hover {
+        background-color: #2980b9;
+        border-color: #2980b9;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0 text-gray-800">
+                        <i class="fas fa-heartbeat text-primary"></i> 
+                        Dados de Saúde
+                    </h1>
+                    <p class="mb-0 text-muted">Cidadão: <strong>{{ cidadao.nome }}</strong></p>
+                </div>
+                <a href="{% url 'dashboard:cidadao_detail' cidadao.pk %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </a>
+            </div>
+
+            <!-- Formulário -->
+            <form method="post" class="needs-validation" novalidate>
+                {% csrf_token %}
+                
+                <!-- Sinais Vitais -->
+                <div class="form-section">
+                    <h4 class="section-title">
+                        <i class="fas fa-stethoscope text-danger"></i> Sinais Vitais
+                    </h4>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="{{ form.pressao_sistolica.id_for_label }}" class="form-label required-field">
+                                    Pressão Sistólica (mmHg)
+                                </label>
+                                {{ form.pressao_sistolica }}
+                                {% if form.pressao_sistolica.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.pressao_sistolica.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="{{ form.pressao_diastolica.id_for_label }}" class="form-label required-field">
+                                    Pressão Diastólica (mmHg)
+                                </label>
+                                {{ form.pressao_diastolica }}
+                                {% if form.pressao_diastolica.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.pressao_diastolica.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="{{ form.frequencia_cardiaca.id_for_label }}" class="form-label required-field">
+                                    Frequência Cardíaca (bpm)
+                                </label>
+                                {{ form.frequencia_cardiaca }}
+                                {% if form.frequencia_cardiaca.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.frequencia_cardiaca.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="{{ form.temperatura.id_for_label }}" class="form-label required-field">
+                                    Temperatura (°C)
+                                </label>
+                                {{ form.temperatura }}
+                                {% if form.temperatura.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.temperatura.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dados Antropométricos -->
+                <div class="form-section">
+                    <h4 class="section-title">
+                        <i class="fas fa-weight text-info"></i> Dados Antropométricos
+                    </h4>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.peso.id_for_label }}" class="form-label required-field">
+                                    Peso (kg)
+                                </label>
+                                {{ form.peso }}
+                                {% if form.peso.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.peso.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.altura.id_for_label }}" class="form-label required-field">
+                                    Altura (metros)
+                                </label>
+                                {{ form.altura }}
+                                {% if form.altura.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.altura.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sintomas -->
+                <div class="form-section">
+                    <h4 class="section-title">
+                        <i class="fas fa-exclamation-circle text-warning"></i> Sintomas
+                    </h4>
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="mb-3">
+                                <label for="{{ form.sintomas_principais.id_for_label }}" class="form-label required-field">
+                                    Sintomas Principais
+                                </label>
+                                {{ form.sintomas_principais }}
+                                {% if form.sintomas_principais.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.sintomas_principais.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.nivel_dor.id_for_label }}" class="form-label required-field">
+                                    Nível de Dor (0-10)
+                                </label>
+                                {{ form.nivel_dor }}
+                                {% if form.nivel_dor.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.nivel_dor.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.duracao_sintomas.id_for_label }}" class="form-label required-field">
+                                    Duração dos Sintomas
+                                </label>
+                                {{ form.duracao_sintomas }}
+                                {% if form.duracao_sintomas.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.duracao_sintomas.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Histórico Médico -->
+                <div class="form-section">
+                    <h4 class="section-title">
+                        <i class="fas fa-file-medical text-secondary"></i> Histórico Médico
+                    </h4>
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="mb-3">
+                                <label for="{{ form.historico_doencas.id_for_label }}" class="form-label">
+                                    Histórico de Doenças
+                                </label>
+                                {{ form.historico_doencas }}
+                                {% if form.historico_doencas.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.historico_doencas.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.medicamentos_uso.id_for_label }}" class="form-label">
+                                    Medicamentos em Uso
+                                </label>
+                                {{ form.medicamentos_uso }}
+                                {% if form.medicamentos_uso.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.medicamentos_uso.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.alergias.id_for_label }}" class="form-label">
+                                    Alergias
+                                </label>
+                                {{ form.alergias }}
+                                {% if form.alergias.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.alergias.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hábitos de Vida -->
+                <div class="form-section">
+                    <h4 class="section-title">
+                        <i class="fas fa-running text-success"></i> Hábitos de Vida
+                    </h4>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    {{ form.fumante }}
+                                    <label class="form-check-label" for="{{ form.fumante.id_for_label }}">
+                                        Fumante
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    {{ form.etilista }}
+                                    <label class="form-check-label" for="{{ form.etilista.id_for_label }}">
+                                        Etilista
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    {{ form.alimentacao_balanceada }}
+                                    <label class="form-check-label" for="{{ form.alimentacao_balanceada.id_for_label }}">
+                                        Alimentação Balanceada
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="{{ form.horas_sono.id_for_label }}" class="form-label required-field">
+                                    Horas de Sono
+                                </label>
+                                {{ form.horas_sono }}
+                                {% if form.horas_sono.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.horas_sono.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.nivel_atividade_fisica.id_for_label }}" class="form-label required-field">
+                                    Nível de Atividade Física
+                                </label>
+                                {{ form.nivel_atividade_fisica }}
+                                {% if form.nivel_atividade_fisica.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.nivel_atividade_fisica.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.consumo_agua_litros.id_for_label }}" class="form-label required-field">
+                                    Consumo de Água (litros/dia)
+                                </label>
+                                {{ form.consumo_agua_litros }}
+                                {% if form.consumo_agua_litros.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.consumo_agua_litros.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botões -->
+                <div class="form-section">
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'dashboard:cidadao_detail' cidadao.pk %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Salvar Dados de Saúde
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Adicionar classes do Bootstrap aos campos
+    $('input[type="text"], input[type="number"], input[type="email"], input[type="tel"], select, textarea').addClass('form-control');
+    $('input[type="checkbox"]').addClass('form-check-input');
+    
+    // Validação do formulário
+    const form = document.querySelector('.needs-validation');
+    form.addEventListener('submit', function(event) {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+    });
+    
+    // Máscara para campos numéricos
+    $('#id_peso').attr('step', '0.01').attr('min', '1').attr('max', '300');
+    $('#id_altura').attr('step', '0.01').attr('min', '0.3').attr('max', '2.5');
+    $('#id_temperatura').attr('step', '0.1').attr('min', '30').attr('max', '45');
+    $('#id_pressao_sistolica').attr('min', '70').attr('max', '250');
+    $('#id_pressao_diastolica').attr('min', '40').attr('max', '150');
+    $('#id_frequencia_cardiaca').attr('min', '30').attr('max', '220');
+    $('#id_nivel_dor').attr('min', '0').attr('max', '10');
+    $('#id_horas_sono').attr('min', '1').attr('max', '24');
+    $('#id_consumo_agua_litros').attr('step', '0.1').attr('min', '0.1').attr('max', '10');
+});
+</script>
+{% endblock %}

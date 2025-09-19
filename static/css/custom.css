@@ -1,0 +1,263 @@
+/* 
+ * Custom CSS for Sistema de Saúde Pública
+ * Cores: Primária #388b98, Secundária #8ddbc9
+ */
+
+:root {
+    --primary-color: #388b98;
+    --secondary-color: #8ddbc9;
+    --primary-dark: #2d6d77;
+    --primary-light: #4a9dac;
+    --secondary-dark: #7bc4b4;
+    --secondary-light: #a8e5d5;
+    --accent-color: #ffffff;
+    --text-dark: #2c3e50;
+    --text-light: #6c757d;
+}
+
+/* Bootstrap Color Overrides */
+.bg-primary {
+    background-color: var(--primary-color) !important;
+}
+
+.bg-secondary {
+    background-color: var(--secondary-color) !important;
+}
+
+.text-primary {
+    color: var(--primary-color) !important;
+}
+
+.text-secondary {
+    color: var(--secondary-color) !important;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+.btn-secondary {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+    color: var(--text-dark);
+}
+
+.btn-secondary:hover {
+    background-color: var(--secondary-dark);
+    border-color: var(--secondary-dark);
+    color: var(--text-dark);
+}
+
+.btn-outline-primary {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-outline-secondary {
+    color: var(--secondary-color);
+    border-color: var(--secondary-color);
+}
+
+.btn-outline-secondary:hover {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+    color: var(--text-dark);
+}
+
+/* Cards and Badges */
+.border-primary {
+    border-color: var(--primary-color) !important;
+}
+
+.border-secondary {
+    border-color: var(--secondary-color) !important;
+}
+
+.badge.bg-primary {
+    background-color: var(--primary-color) !important;
+}
+
+.badge.bg-secondary {
+    background-color: var(--secondary-color) !important;
+    color: var(--text-dark) !important;
+}
+
+/* Navbar Customizations */
+.navbar-brand {
+    font-weight: 600;
+    font-size: 1.4rem;
+}
+
+.navbar-brand img {
+    height: 40px;
+    width: auto;
+    margin-right: 10px;
+}
+
+/* Links and Navigation */
+.nav-link:hover {
+    color: var(--secondary-color) !important;
+}
+
+.dropdown-item:hover {
+    background-color: var(--secondary-light);
+    color: var(--text-dark);
+}
+
+/* Forms */
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(56, 139, 152, 0.25);
+}
+
+.form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(56, 139, 152, 0.25);
+}
+
+/* Cards */
+.card-header {
+    background-color: var(--secondary-light);
+    border-bottom: 1px solid var(--secondary-color);
+}
+
+.card-header h5,
+.card-header h6 {
+    color: var(--text-dark);
+    margin-bottom: 0;
+}
+
+/* Alerts */
+.alert-info {
+    background-color: rgba(141, 219, 201, 0.1);
+    border-color: var(--secondary-color);
+    color: var(--text-dark);
+}
+
+.alert-success {
+    background-color: rgba(56, 139, 152, 0.1);
+    border-color: var(--primary-color);
+    color: var(--primary-dark);
+}
+
+/* Tables */
+.table-primary {
+    --bs-table-bg: rgba(56, 139, 152, 0.1);
+    --bs-table-striped-bg: rgba(56, 139, 152, 0.05);
+}
+
+.table-secondary {
+    --bs-table-bg: rgba(141, 219, 201, 0.1);
+    --bs-table-striped-bg: rgba(141, 219, 201, 0.05);
+}
+
+/* Progress bars */
+.progress-bar {
+    background-color: var(--primary-color);
+}
+
+/* Custom Classes */
+.bg-light-primary {
+    background-color: rgba(56, 139, 152, 0.1) !important;
+}
+
+.bg-light-secondary {
+    background-color: rgba(141, 219, 201, 0.1) !important;
+}
+
+.text-primary-dark {
+    color: var(--primary-dark) !important;
+}
+
+.text-secondary-dark {
+    color: var(--secondary-dark) !important;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+}
+
+/* Gradient Backgrounds */
+.bg-gradient-primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-light)) !important;
+}
+
+.bg-gradient-secondary {
+    background: linear-gradient(135deg, var(--secondary-color), var(--secondary-light)) !important;
+}
+
+/* Chart colors (for Chart.js) */
+.chart-primary {
+    background-color: var(--primary-color);
+}
+
+.chart-secondary {
+    background-color: var(--secondary-color);
+}
+
+/* Custom shadows */
+.shadow-primary {
+    box-shadow: 0 0.125rem 0.25rem rgba(56, 139, 152, 0.15) !important;
+}
+
+.shadow-secondary {
+    box-shadow: 0 0.125rem 0.25rem rgba(141, 219, 201, 0.15) !important;
+}
+
+/* Logo styling */
+.brand-logo {
+    height: 40px;
+    width: auto;
+    filter: brightness(0) invert(1);
+}
+
+.brand-logo-color {
+    height: 40px;
+    width: auto;
+}
+
+.brand-logo-login {
+    height: 60px;
+    width: auto;
+    filter: brightness(0) invert(1);
+}
+
+/* Footer if exists */
+.footer {
+    background-color: var(--primary-dark);
+    color: var(--accent-color);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .navbar-brand img {
+        height: 32px;
+    }
+    
+    .brand-logo {
+        height: 32px;
+    }
+    
+    .brand-logo-color {
+        height: 32px;
+    }
+}
+
+/* Animation for logo */
+.brand-logo:hover,
+.brand-logo-color:hover {
+    transform: scale(1.05);
+    transition: transform 0.2s ease-in-out;
+}

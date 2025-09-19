@@ -1,0 +1,177 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Coleta de Dados{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="fas fa-clipboard-list me-2"></i>Coleta de Dados de Saúde</h1>
+            </div>
+
+            <!-- Processo em 2 Etapas -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-user-plus fa-3x text-primary mb-3"></i>
+                            <h5>1. Cadastrar Cidadão</h5>
+                            <p class="text-muted">
+                                Cadastre um novo cidadão com informações básicas e histórico de saúde.
+                            </p>
+                            <a href="{% url 'dashboard:cadastro_cidadao' %}" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i>Novo Cadastro
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-stethoscope fa-3x text-success mb-3"></i>
+                            <h5>2. Coletar Dados de Saúde</h5>
+                            <p class="text-muted">
+                                Selecione um cidadão cadastrado para coletar dados de saúde atuais.
+                            </p>
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#selecionarCidadaoModal">
+                                    <i class="fas fa-search me-1"></i>Selecionar Cidadão
+                                </button>
+                                <a href="{% url 'dashboard:cidadaos_list' %}" class="btn btn-outline-success">
+                                    <i class="fas fa-list me-1"></i>Ver Lista Completa
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resumo Estatístico -->
+            <div class="row mt-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-users fa-2x mb-2"></i>
+                            <h4>{{ total_cidadaos|default:0 }}</h4>
+                            <small>Cidadãos Cadastrados</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-heartbeat fa-2x mb-2"></i>
+                            <h4>{{ com_dados_saude|default:0 }}</h4>
+                            <small>Com Dados de Saúde</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-brain fa-2x mb-2"></i>
+                            <h4>{{ anamneses_geradas|default:0 }}</h4>
+                            <small>Anamneses Geradas</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                            <h4>{{ casos_alto_risco|default:0 }}</h4>
+                            <small>Alto Risco</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Selecionar Cidadão -->
+<div class="modal fade" id="selecionarCidadaoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-search me-2"></i>Selecionar Cidadão
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <input type="text" class="form-control" id="buscarCidadao" 
+                           placeholder="Busque por nome ou CPF...">
+                </div>
+                <div id="listaCidadaos">
+                    <!-- Lista será carregada via AJAX -->
+                    <div class="text-center">
+                        <i class="fas fa-spinner fa-spin fa-2x"></i>
+                        <p>Carregando cidadãos...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('selecionarCidadaoModal');
+    const buscarInput = document.getElementById('buscarCidadao');
+    const listaCidadaos = document.getElementById('listaCidadaos');
+
+    // Carrega cidadãos quando abre o modal
+    modal.addEventListener('show.bs.modal', function() {
+        carregarCidadaos();
+    });
+
+    // Busca em tempo real
+    buscarInput.addEventListener('input', function() {
+        carregarCidadaos(this.value);
+    });
+
+    function carregarCidadaos(busca = '') {
+        // Simular carregamento via AJAX
+        // Em implementação real, faria chamada para endpoint
+        setTimeout(() => {
+            listaCidadaos.innerHTML = `
+                <div class="list-group">
+                    <div class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">João Silva</h6>
+                            <small>12/03/1980</small>
+                        </div>
+                        <p class="mb-1">CPF: 123.456.789-00</p>
+                        <small>Hipertensão, Diabetes</small>
+                        <div class="mt-2">
+                            <a href="{% url 'dashboard:coleta_saude' %}?cidadao=1" class="btn btn-sm btn-success">
+                                <i class="fas fa-stethoscope me-1"></i>Coletar Dados
+                            </a>
+                        </div>
+                    </div>
+                    <div class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">Maria Santos</h6>
+                            <small>25/08/1992</small>
+                        </div>
+                        <p class="mb-1">CPF: 987.654.321-00</p>
+                        <small>Asma</small>
+                        <div class="mt-2">
+                            <a href="{% url 'dashboard:coleta_saude' %}?cidadao=2" class="btn btn-sm btn-success">
+                                <i class="fas fa-stethoscope me-1"></i>Coletar Dados
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }, 500);
+    }
+});
+</script>
+{% endblock %}

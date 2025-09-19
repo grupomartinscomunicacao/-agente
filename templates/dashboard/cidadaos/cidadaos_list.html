@@ -1,0 +1,248 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Lista de Cidadãos - Sistema de Saúde{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-users me-2"></i>Cidadãos Cadastrados</h2>
+            <a href="{% url 'dashboard:cidadao_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Novo Cidadão
+            </a>
+        </div>
+
+        <!-- Filtros -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-4">
+                        <label for="busca" class="form-label">Buscar</label>
+                        <input type="text" class="form-control" id="busca" name="busca" 
+                               value="{{ request.GET.busca }}" 
+                               placeholder="Nome, CPF ou Email">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="cidade" class="form-label">Cidade</label>
+                        <select class="form-select" id="cidade" name="cidade">
+                            <option value="">Todas as cidades</option>
+                            {% for cidade in cidades %}
+                                <option value="{{ cidade }}" 
+                                        {% if request.GET.cidade == cidade %}selected{% endif %}>
+                                    {{ cidade }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="faixa_etaria" class="form-label">Faixa Etária</label>
+                        <select class="form-select" id="faixa_etaria" name="faixa_etaria">
+                            <option value="">Todas as idades</option>
+                            <option value="0-17" {% if request.GET.faixa_etaria == "0-17" %}selected{% endif %}>0-17 anos</option>
+                            <option value="18-35" {% if request.GET.faixa_etaria == "18-35" %}selected{% endif %}>18-35 anos</option>
+                            <option value="36-60" {% if request.GET.faixa_etaria == "36-60" %}selected{% endif %}>36-60 anos</option>
+                            <option value="60+" {% if request.GET.faixa_etaria == "60+" %}selected{% endif %}>60+ anos</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-search"></i>
+                        </button>
+                        <a href="{% url 'dashboard:cidadaos_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i>
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tabela de Cidadãos -->
+        <div class="card">
+            <div class="card-body">
+                {% if cidadaos %}
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="cidadaosTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>CPF</th>
+                                    <th>Data Nascimento</th>
+                                    <th>Cidade</th>
+                                    <th>Telefone</th>
+                                    <th>Status Saúde</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cidadao in cidadaos %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ cidadao.nome }}</strong>
+                                        {% if cidadao.email %}
+                                            <br><small class="text-muted">{{ cidadao.email }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ cidadao.cpf }}</td>
+                                    <td>
+                                        {{ cidadao.data_nascimento|date:"d/m/Y" }}
+                                        <br><small class="text-muted">{{ cidadao.idade }} anos</small>
+                                    </td>
+                                    <td>{{ cidadao.cidade }}</td>
+                                    <td>{{ cidadao.telefone|default:"-" }}</td>
+                                    <td>
+                                        {% if cidadao.dados_saude_recentes %}
+                                            {% with dados=cidadao.dados_saude_recentes %}
+                                                {% if dados.pressao_sistolica >= 140 or dados.pressao_diastolica >= 90 %}
+                                                    <span class="badge bg-danger">Alto risco</span>
+                                                {% elif dados.pressao_sistolica >= 130 or dados.pressao_diastolica >= 85 %}
+                                                    <span class="badge bg-warning">Médio risco</span>
+                                                {% else %}
+                                                    <span class="badge bg-success">Baixo risco</span>
+                                                {% endif %}
+                                            {% endwith %}
+                                        {% else %}
+                                            <span class="badge bg-secondary">Sem dados</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{% url 'dashboard:cidadao_detail' cidadao.pk %}" 
+                                               class="btn btn-outline-primary" title="Ver Detalhes">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{% url 'dashboard:cidadao_update' cidadao.pk %}" 
+                                               class="btn btn-outline-success" title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'dashboard:dados_saude_create' cidadao.pk %}" 
+                                               class="btn btn-outline-info" title="Adicionar Dados de Saúde">
+                                                <i class="fas fa-heartbeat"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Paginação -->
+                    {% if is_paginated %}
+                        <nav aria-label="Paginação">
+                            <ul class="pagination justify-content-center mt-4">
+                                {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page=1">
+                                            <i class="fas fa-angle-double-left"></i>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">
+                                            <i class="fas fa-angle-left"></i>
+                                        </a>
+                                    </li>
+                                {% endif %}
+
+                                {% for num in page_obj.paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ num }}</span>
+                                        </li>
+                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">
+                                            <i class="fas fa-angle-right"></i>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.paginator.num_pages }}">
+                                            <i class="fas fa-angle-double-right"></i>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    {% endif %}
+
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                        <h4 class="text-muted">Nenhum cidadão encontrado</h4>
+                        <p class="text-muted">
+                            {% if request.GET.busca or request.GET.cidade or request.GET.faixa_etaria %}
+                                Tente ajustar os filtros ou 
+                                <a href="{% url 'dashboard:cidadaos_list' %}">limpar a busca</a>.
+                            {% else %}
+                                Comece cadastrando o primeiro cidadão.
+                            {% endif %}
+                        </p>
+                        <a href="{% url 'dashboard:cidadao_create' %}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Cadastrar Primeiro Cidadão
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Estatísticas -->
+        <div class="row mt-4">
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Total de Cidadãos</h5>
+                        <h2 class="text-primary">{{ paginator.count|default:0 }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Com Dados de Saúde</h5>
+                        <h2 class="text-success">{{ stats.com_dados_saude|default:0 }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Alto Risco</h5>
+                        <h2 class="text-danger">{{ stats.alto_risco|default:0 }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Anamneses Pendentes</h5>
+                        <h2 class="text-warning">{{ stats.anamneses_pendentes|default:0 }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('#cidadaosTable').DataTable({
+        "language": {
+            "url": "//cdn.datatables.net/plug-ins/1.13.4/i18n/pt-BR.json"
+        },
+        "pageLength": 25,
+        "responsive": true,
+        "columnDefs": [
+            { "orderable": false, "targets": [6] } // Ações não ordenáveis
+        ]
+    });
+});
+</script>
+{% endblock %}

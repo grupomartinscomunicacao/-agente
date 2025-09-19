@@ -1,0 +1,532 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block title %}{{ cidadao.nome }} - Detalhes{% endblock %}
+
+{% block extra_css %}
+<style>
+    .info-card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .section-title {
+        color: #2c3e50;
+        border-bottom: 2px solid #3498db;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+    }
+    .stats-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .metric-item {
+        background: #f8f9fa;
+        border-radius: 6px;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-left: 4px solid #3498db;
+    }
+    .badge-risco {
+        font-size: 0.875rem;
+        padding: 8px 12px;
+    }
+    .timeline-item {
+        border-left: 3px solid #3498db;
+        padding-left: 20px;
+        margin-bottom: 20px;
+        position: relative;
+    }
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -8px;
+        top: 5px;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        background: #3498db;
+    }
+    .btn-action {
+        margin: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0 text-gray-800">
+                        <i class="fas fa-user text-primary"></i> 
+                        {{ cidadao.nome }}
+                    </h1>
+                    <p class="mb-0 text-muted">CPF: {{ cidadao.cpf }}</p>
+                </div>
+                <div>
+                    {% if dados_saude %}
+                    <button class="btn btn-success btn-action" onclick="gerarAnamnese('{{ cidadao.pk }}', '')" title="Gerar Anamnese com dados mais recentes">
+                        <i class="fas fa-robot"></i> Gerar Anamnese IA
+                    </button>
+                    {% endif %}
+                    <a href="{% url 'dashboard:dados_saude_create' cidadao.pk %}" class="btn btn-success btn-action">
+                        <i class="fas fa-plus"></i> Adicionar Dados de Saúde
+                    </a>
+                    <a href="{% url 'dashboard:cidadao_update' cidadao.pk %}" class="btn btn-primary btn-action">
+                        <i class="fas fa-edit"></i> Editar
+                    </a>
+                    <a href="{% url 'dashboard:cidadaos_list' %}" class="btn btn-outline-secondary btn-action">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </a>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Informações Pessoais -->
+                <div class="col-md-6">
+                    <div class="info-card">
+                        <h4 class="section-title">
+                            <i class="fas fa-user-circle text-primary"></i> Informações Pessoais
+                        </h4>
+                        
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <strong>Nome:</strong><br>
+                                {{ cidadao.nome }}
+                            </div>
+                            <div class="col-sm-6">
+                                <strong>CPF:</strong><br>
+                                {{ cidadao.cpf }}
+                            </div>
+                        </div>
+                        <hr>
+                        
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <strong>Data de Nascimento:</strong><br>
+                                {{ cidadao.data_nascimento|date:"d/m/Y" }}
+                                <small class="text-muted">({{ cidadao.idade }} anos)</small>
+                            </div>
+                            <div class="col-sm-6">
+                                <strong>Sexo:</strong><br>
+                                {{ cidadao.get_sexo_display }}
+                            </div>
+                        </div>
+                        <hr>
+                        
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <strong>Estado Civil:</strong><br>
+                                {{ cidadao.get_estado_civil_display|default:"-" }}
+                            </div>
+                            <div class="col-sm-6">
+                                <strong>Profissão:</strong><br>
+                                {{ cidadao.profissao|default:"-" }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contato e Endereço -->
+                <div class="col-md-6">
+                    <div class="info-card">
+                        <h4 class="section-title">
+                            <i class="fas fa-address-card text-info"></i> Contato e Endereço
+                        </h4>
+                        
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <strong>Telefone:</strong><br>
+                                {{ cidadao.telefone|default:"-" }}
+                            </div>
+                            <div class="col-sm-6">
+                                <strong>Email:</strong><br>
+                                {{ cidadao.email|default:"-" }}
+                            </div>
+                        </div>
+                        <hr>
+                        
+                        <div class="row">
+                            <div class="col-12">
+                                <strong>Endereço:</strong><br>
+                                {{ cidadao.endereco|default:"-" }}<br>
+                                {% if cidadao.bairro %}{{ cidadao.bairro }}, {% endif %}
+                                {{ cidadao.cidade|default:"-" }} - {{ cidadao.estado|default:"-" }}<br>
+                                {% if cidadao.cep %}CEP: {{ cidadao.cep }}{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dados de Saúde Recentes -->
+            {% if dados_saude %}
+            <div class="row">
+                <div class="col-12">
+                    <div class="info-card">
+                        <h4 class="section-title">
+                            <i class="fas fa-heartbeat text-danger"></i> Dados de Saúde Recentes
+                        </h4>
+                        
+                        {% for dados in dados_saude|slice:":3" %}
+                        <div class="timeline-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">
+                                        {{ dados.criado_em|date:"d/m/Y H:i" }}
+                                        {% if dados.agente_coleta %}
+                                            <small class="text-muted">por {{ dados.agente_coleta.get_full_name|default:dados.agente_coleta.username }}</small>
+                                        {% else %}
+                                            <small class="text-muted">por Sistema</small>
+                                        {% endif %}
+                                    </h6>
+                                    
+                                    <div class="row mt-2">
+                                        <div class="col-md-3">
+                                            <div class="metric-item">
+                                                <strong>Pressão Arterial</strong><br>
+                                                {{ dados.pressao_sistolica }}/{{ dados.pressao_diastolica }} mmHg
+                                                {% if dados.pressao_sistolica >= 140 or dados.pressao_diastolica >= 90 %}
+                                                    <span class="badge bg-danger ms-2">Alto</span>
+                                                {% elif dados.pressao_sistolica >= 130 or dados.pressao_diastolica >= 85 %}
+                                                    <span class="badge bg-warning ms-2">Moderado</span>
+                                                {% else %}
+                                                    <span class="badge bg-success ms-2">Normal</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="metric-item">
+                                                <strong>Frequência Cardíaca</strong><br>
+                                                {{ dados.frequencia_cardiaca }} bpm
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="metric-item">
+                                                <strong>Temperatura</strong><br>
+                                                {{ dados.temperatura }}°C
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="metric-item">
+                                                <strong>IMC</strong><br>
+                                                {{ dados.imc }}
+                                                <small class="text-muted d-block">{{ dados.classificacao_imc }}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {% if dados.sintomas_principais %}
+                                    <div class="mt-2">
+                                        <strong>Sintomas:</strong> {{ dados.sintomas_principais }}
+                                        {% if dados.nivel_dor > 0 %}
+                                            <span class="badge bg-{% if dados.nivel_dor >= 7 %}danger{% elif dados.nivel_dor >= 4 %}warning{% else %}info{% endif %} ms-2">
+                                                Dor: {{ dados.nivel_dor }}/10
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-shrink-0 ms-3">
+                                    <button class="btn btn-primary btn-sm" onclick="gerarAnamnese('{{ cidadao.pk }}', '{{ dados.pk }}')" title="Gerar Anamnese com IA">
+                                        <i class="fas fa-robot"></i> Gerar Anamnese
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        
+                        {% if dados_saude.count > 3 %}
+                        <div class="text-center mt-3">
+                            <button class="btn btn-outline-primary" onclick="toggleMoreData()">
+                                <i class="fas fa-chevron-down"></i> Ver todos os {{ dados_saude.count }} registros
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="row">
+                <div class="col-12">
+                    <div class="info-card text-center">
+                        <i class="fas fa-stethoscope fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Nenhum dado de saúde registrado</h5>
+                        <p class="text-muted">Clique no botão acima para adicionar os primeiros dados de saúde deste cidadão.</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Anamneses -->
+            {% if anamneses %}
+            <div class="row">
+                <div class="col-12">
+                    <div class="info-card">
+                        <h4 class="section-title">
+                            <i class="fas fa-clipboard-list text-warning"></i> Anamneses
+                        </h4>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Data</th>
+                                        <th>Status</th>
+                                        <th>Triagem de Risco</th>
+                                        <th>Resumo</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for anamnese in anamneses|slice:":5" %}
+                                    <tr>
+                                        <td>{{ anamnese.criado_em|date:"d/m/Y H:i" }}</td>
+                                        <td>
+                                            <span class="badge bg-{% if anamnese.status == 'aprovada' %}success{% elif anamnese.status == 'rejeitada' %}danger{% elif anamnese.status == 'revisao' %}warning{% else %}secondary{% endif %}">
+                                                {{ anamnese.get_status_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if anamnese.triagem_risco %}
+                                                <span class="badge bg-{% if anamnese.triagem_risco == 'critico' %}danger{% elif anamnese.triagem_risco == 'alto' %}warning{% elif anamnese.triagem_risco == 'medio' %}info{% else %}success{% endif %}">
+                                                    {{ anamnese.get_triagem_risco_display }}
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Pendente</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if anamnese.resumo_anamnese %}
+                                                {{ anamnese.resumo_anamnese|truncatechars:100 }}
+                                            {% else %}
+                                                <em class="text-muted">Em processamento...</em>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'dashboard:anamnese_detail' anamnese.pk %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i> Ver
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        {% if anamneses.count > 5 %}
+                        <div class="text-center mt-3">
+                            <a href="{% url 'dashboard:anamneses_list' %}?cidadao={{ cidadao.pk }}" class="btn btn-outline-primary">
+                                <i class="fas fa-list"></i> Ver todas as anamneses
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Alertas Ativos -->
+            {% if alertas_ativos %}
+            <div class="row">
+                <div class="col-12">
+                    <div class="info-card">
+                        <h4 class="section-title">
+                            <i class="fas fa-exclamation-triangle text-danger"></i> Alertas Ativos
+                        </h4>
+                        
+                        <div class="row">
+                            {% for alerta in alertas_ativos %}
+                            <div class="col-md-6 mb-3">
+                                <div class="alert alert-{% if alerta.prioridade == 'urgente' %}danger{% elif alerta.prioridade == 'alta' %}warning{% else %}info{% endif %}" role="alert">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="alert-heading">
+                                                <i class="fas fa-{% if alerta.prioridade == 'urgente' %}exclamation-circle{% elif alerta.prioridade == 'alta' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+                                                {{ alerta.get_prioridade_display }}
+                                            </h6>
+                                            <p class="mb-1">{{ alerta.descricao }}</p>
+                                            <small class="text-muted">{{ alerta.criado_em|date:"d/m/Y H:i" }}</small>
+                                        </div>
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="resolverAlerta({{ alerta.pk }})">
+                                            <i class="fas fa-check"></i> Resolver
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+
+<!-- Formulário hidden para token CSRF -->
+<form id="csrf-form" style="display: none;">
+    {% csrf_token %}
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleMoreData() {
+    // Implementar lógica para mostrar/ocultar mais dados
+    alert('Funcionalidade em desenvolvimento');
+}
+
+function resolverAlerta(alertaId) {
+    if (confirm('Tem certeza que deseja resolver este alerta?')) {
+        // Implementar AJAX para resolver alerta
+        fetch(`/alertas/${alertaId}/resolver/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val(),
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erro ao resolver alerta');
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            alert('Erro ao resolver alerta');
+        });
+    }
+}
+
+function gerarAnamnese(cidadaoId, dadosSaudeId) {
+    console.log('Iniciando geração de anamnese...', { cidadaoId, dadosSaudeId });
+    
+    const button = event.target;
+    const originalText = button.innerHTML;
+    
+    // Verifica se o token CSRF existe no formulário hidden
+    const csrfInput = document.querySelector('#csrf-form input[name="csrfmiddlewaretoken"]');
+    if (!csrfInput) {
+        alert('Erro: Token CSRF não encontrado. Recarregue a página.');
+        console.error('Input CSRF não encontrado no formulário hidden');
+        return;
+    }
+    
+    const csrfValue = csrfInput.value;
+    console.log('Token CSRF encontrado via formulário hidden:', csrfValue.substring(0, 10) + '...');
+    
+    // Desabilita botão e mostra loading
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando...';
+    
+    const formData = new FormData();
+    formData.append('cidadao_id', cidadaoId);
+    if (dadosSaudeId) {
+        formData.append('dados_saude_id', dadosSaudeId);
+    }
+    formData.append('csrfmiddlewaretoken', csrfValue);
+    
+    console.log('Dados a enviar:', {
+        cidadao_id: cidadaoId,
+        dados_saude_id: dadosSaudeId,
+        csrf_token: csrfValue.substring(0, 10) + '...'
+    });
+    
+    fetch('/ajax/gerar-anamnese/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfValue,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams(formData)
+    })
+    .then(response => {
+        console.log('Resposta recebida:', response.status, response.statusText);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Dados recebidos:', data);
+        
+        if (data.success) {
+            // Mostra sucesso
+            button.innerHTML = '<i class="fas fa-check"></i> Sucesso!';
+            button.className = 'btn btn-success btn-sm';
+            
+            // Exibe feedback detalhado
+            let message = 'Anamnese gerada com sucesso!';
+            if (data.tokens_utilizados) {
+                message += `\nTokens utilizados: ${data.tokens_utilizados}`;
+            }
+            if (data.modelo_usado) {
+                message += `\nModelo: ${data.modelo_usado}`;
+            }
+            if (data.triagem_risco) {
+                message += `\nRisco: ${data.triagem_risco.toUpperCase()}`;
+            }
+            
+            alert(message);
+            
+            // Redireciona para a anamnese
+            setTimeout(() => {
+                console.log('Redirecionando para:', data.redirect_url);
+                window.location.href = data.redirect_url;
+            }, 2000);
+            
+        } else {
+            // Mostra erro
+            console.error('Erro da API:', data.error);
+            button.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Erro';
+            button.className = 'btn btn-danger btn-sm';
+            alert('Erro ao gerar anamnese: ' + (data.error || 'Erro desconhecido'));
+            
+            // Restaura botão após 3 segundos
+            setTimeout(() => {
+                button.disabled = false;
+                button.innerHTML = originalText;
+                button.className = 'btn btn-primary btn-sm';
+            }, 3000);
+        }
+    })
+    .catch(error => {
+        console.error('Erro na requisição:', error);
+        button.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Erro';
+        button.className = 'btn btn-danger btn-sm';
+        
+        let errorMessage = 'Erro de conexão ao gerar anamnese';
+        if (error.message) {
+            errorMessage += ': ' + error.message;
+        }
+        alert(errorMessage);
+        
+        // Restaura botão após 3 segundos
+        setTimeout(() => {
+            button.disabled = false;
+            button.innerHTML = originalText;
+            button.className = 'btn btn-primary btn-sm';
+        }, 3000);
+    });
+}
+
+$(document).ready(function() {
+    // Adicionar tooltips
+    $('[data-bs-toggle="tooltip"]').tooltip();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Nova Anamnese</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .btn { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; }
+        .btn:hover { background: #0056b3; }
+        .result { margin-top: 20px; padding: 15px; border: 1px solid #ddd; white-space: pre-wrap; }
+        .loading { color: #666; font-style: italic; }
+        .success { background: #d4edda; border-color: #c3e6cb; }
+        .error { background: #f8d7da; border-color: #f5c6cb; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste Nova Anamnese</h1>
+    
+    <div>
+        <p>Este teste simula uma requisição POST para criar nova anamnese.</p>
+        <button id="testBtn" class="btn">🚀 Testar Nova Anamnese</button>
+    </div>
+    
+    <div id="result" class="result hidden"></div>
+    
+    <script>
+        document.getElementById('testBtn').addEventListener('click', async function() {
+            const btn = this;
+            const result = document.getElementById('result');
+            
+            btn.disabled = true;
+            btn.textContent = '⏳ Testando...';
+            
+            result.classList.remove('hidden', 'success', 'error');
+            result.classList.add('loading');
+            result.textContent = '🔄 Iniciando teste...\n';
+            
+            try {
+                // Pegar CSRF token primeiro
+                result.textContent += '🔒 Obtendo token CSRF...\n';
+                
+                const csrfResponse = await fetch('/nova-anamnese/');
+                if (!csrfResponse.ok) {
+                    throw new Error(`Erro ao obter CSRF: ${csrfResponse.status}`);
+                }
+                
+                const csrfText = await csrfResponse.text();
+                const csrfMatch = csrfText.match(/name=['"]csrfmiddlewaretoken['"]\\s+value=['"]([^'"]+)['"]/);
+                
+                if (!csrfMatch) {
+                    throw new Error('Token CSRF não encontrado');
+                }
+                
+                const csrfToken = csrfMatch[1];
+                result.textContent += `✅ Token CSRF obtido: ${csrfToken.substring(0, 20)}...\n`;
+                
+                // Obter cidadão de teste
+                result.textContent += '👤 Obtendo dados de cidadão...\n';
+                
+                const cidadaoResponse = await fetch('/cidadaos/');
+                const cidadaoText = await cidadaoResponse.text();
+                
+                // Extrair primeiro UUID encontrado (cidadão)
+                const uuidMatch = cidadaoText.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/);
+                if (!uuidMatch) {
+                    throw new Error('Nenhum cidadão encontrado');
+                }
+                
+                const cidadaoId = uuidMatch[0];
+                result.textContent += `✅ Cidadão ID obtido: ${cidadaoId}\n`;
+                
+                // Fazer POST para nova anamnese
+                result.textContent += '🚀 Enviando POST para nova anamnese...\n';
+                result.textContent += '⏰ Isso pode demorar alguns minutos (processamento com OpenAI)...\n';
+                
+                const startTime = Date.now();
+                
+                const formData = new FormData();
+                formData.append('cidadao_id', cidadaoId);
+                formData.append('usar_dados_recentes', 'true');
+                formData.append('csrfmiddlewaretoken', csrfToken);
+                
+                const postResponse = await fetch('/nova-anamnese/', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                    }
+                });
+                
+                const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+                result.textContent += `📊 Status: ${postResponse.status} (${duration}s)\n`;
+                
+                if (postResponse.ok) {
+                    const responseData = await postResponse.json();
+                    
+                    result.classList.remove('loading');
+                    result.classList.add('success');
+                    result.textContent += `\n🎉 SUCESSO! Anamnese criada:\n`;
+                    result.textContent += `📄 ID da Anamnese: ${responseData.anamnese_id || 'N/A'}\n`;
+                    result.textContent += `💬 Mensagem: ${responseData.message || 'N/A'}\n`;
+                    result.textContent += `🔄 Redirect: ${responseData.redirect_url || 'N/A'}\n`;
+                    result.textContent += `📋 Contexto usado: ${responseData.contexto_usado ? 'Sim' : 'Não'}\n`;
+                    
+                    if (responseData.anamnese) {
+                        result.textContent += `\n📝 Dados da Anamnese:\n`;
+                        result.textContent += `   Queixa principal: ${responseData.anamnese.queixa_principal || 'N/A'}\n`;
+                        result.textContent += `   História da doença: ${responseData.anamnese.historia_doenca_atual ? responseData.anamnese.historia_doenca_atual.substring(0, 100) + '...' : 'N/A'}\n`;
+                        result.textContent += `   Exame físico: ${responseData.anamnese.exame_fisico ? responseData.anamnese.exame_fisico.substring(0, 100) + '...' : 'N/A'}\n`;
+                    }
+                    
+                } else {
+                    const errorText = await postResponse.text();
+                    result.classList.remove('loading');
+                    result.classList.add('error');
+                    result.textContent += `\n❌ Erro HTTP ${postResponse.status}:\n${errorText.substring(0, 500)}...\n`;
+                }
+                
+            } catch (error) {
+                result.classList.remove('loading');
+                result.classList.add('error');
+                result.textContent += `\n❌ Erro: ${error.message}\n`;
+                console.error('Erro no teste:', error);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🚀 Testar Nova Anamnese';
+            }
+        });
+    </script>
+</body>
+</html>

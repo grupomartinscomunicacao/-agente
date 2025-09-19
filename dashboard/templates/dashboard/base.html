@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sistema de Saúde Pública{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin: 2px 0;
+            transition: all 0.3s;
+        }
+        
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            color: white;
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .main-content {
+            padding: 20px;
+            background-color: #f8f9fa;
+            min-height: 100vh;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            transition: transform 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-card .icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+        }
+        
+        .text-primary-custom { color: #667eea !important; }
+        .bg-primary-custom { background: #667eea !important; }
+        .bg-success-custom { background: #28a745 !important; }
+        .bg-warning-custom { background: #ffc107 !important; }
+        .bg-danger-custom { background: #dc3545 !important; }
+        .bg-info-custom { background: #17a2b8 !important; }
+        
+        .alert-priority-alta {
+            border-left: 4px solid #dc3545;
+        }
+        
+        .alert-priority-media {
+            border-left: 4px solid #ffc107;
+        }
+        
+        .alert-priority-baixa {
+            border-left: 4px solid #28a745;
+        }
+        
+        .risk-badge {
+            font-size: 0.8rem;
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+        
+        .risk-baixo { background-color: #d4edda; color: #155724; }
+        .risk-medio { background-color: #fff3cd; color: #856404; }
+        .risk-alto { background-color: #f8d7da; color: #721c24; }
+        .risk-critico { background-color: #d1ecf1; color: #0c5460; }
+        
+        .loading-spinner {
+            display: none;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 sidebar">
+                <div class="position-sticky pt-3">
+                    <div class="text-center mb-4">
+                        <h5 class="text-white">
+                            <i class="fas fa-heartbeat me-2"></i>
+                            Saúde Pública
+                        </h5>
+                    </div>
+                    
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
+                               href="{% url 'dashboard:dashboard' %}">
+                                <i class="fas fa-chart-pie me-2"></i>
+                                Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'coleta' in request.resolver_match.url_name %}active{% endif %}"
+                               href="{% url 'dashboard:coleta_dados' %}">
+                                <i class="fas fa-clipboard-list me-2"></i>
+                                Coleta de Dados
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'anamneses' in request.resolver_match.url_name %}active{% endif %}"
+                               href="{% url 'dashboard:anamneses_list' %}">
+                                <i class="fas fa-stethoscope me-2"></i>
+                                Anamneses
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'cidadaos' in request.resolver_match.url_name %}active{% endif %}"
+                               href="{% url 'dashboard:cidadaos_list' %}">
+                                <i class="fas fa-users me-2"></i>
+                                Cidadãos
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'alertas' in request.resolver_match.url_name %}active{% endif %}"
+                               href="{% url 'dashboard:alertas' %}">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Alertas
+                                <span class="badge bg-danger ms-2" id="alertas-count">0</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'relatorios' in request.resolver_match.url_name %}active{% endif %}"
+                               href="{% url 'dashboard:relatorios' %}">
+                                <i class="fas fa-file-alt me-2"></i>
+                                Relatórios
+                            </a>
+                        </li>
+                    </ul>
+                    
+                    <hr class="text-white">
+                    
+                    <div class="dropdown">
+                        <a class="nav-link dropdown-toggle text-white" href="#" role="button" 
+                           data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user me-2"></i>
+                            {{ user.get_full_name|default:user.username }}
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Configurações</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'admin:logout' %}">
+                                <i class="fas fa-sign-out-alt me-2"></i>Sair
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+            
+            <!-- Main Content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 main-content">
+                <!-- Header -->
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">{% block page_title %}Dashboard{% endblock %}</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        {% block page_actions %}{% endblock %}
+                    </div>
+                </div>
+                
+                <!-- Messages -->
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                
+                <!-- Content -->
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <script>
+        // Atualização automática de estatísticas
+        function atualizarEstatisticas() {
+            $.get('/ajax/stats/', function(data) {
+                $('#total-cidadaos').text(data.total_cidadaos);
+                $('#atendimentos-hoje').text(data.atendimentos_hoje);
+                $('#anamneses-pendentes').text(data.anamneses_pendentes);
+                $('#alertas-count').text(data.alertas_nao_resolvidos);
+                $('#casos-risco-alto').text(data.casos_risco_alto_hoje);
+                $('#ultima-atualizacao').text('Última atualização: ' + data.ultima_atualizacao);
+            }).fail(function() {
+                console.log('Erro ao atualizar estatísticas');
+            });
+        }
+        
+        // Validação de CPF em tempo real
+        function validarCPF(cpf, callback) {
+            $.post('/ajax/validar-cpf/', {
+                'cpf': cpf,
+                'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+            }, function(data) {
+                callback(data);
+            });
+        }
+        
+        // Formatação automática de campos
+        function formatarCPF(value) {
+            return value.replace(/\D/g, '')
+                       .replace(/(\d{3})(\d)/, '$1.$2')
+                       .replace(/(\d{3})(\d)/, '$1.$2')
+                       .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+                       .replace(/(-\d{2})\d+?$/, '$1');
+        }
+        
+        function formatarTelefone(value) {
+            return value.replace(/\D/g, '')
+                       .replace(/(\d{2})(\d)/, '($1) $2')
+                       .replace(/(\d{4})(\d)/, '$1-$2')
+                       .replace(/(\d{4})-(\d)(\d{4})/, '$1$2-$3')
+                       .replace(/(-\d{4})\d+?$/, '$1');
+        }
+        
+        // Inicialização
+        $(document).ready(function() {
+            // Atualizar estatísticas a cada 30 segundos
+            setInterval(atualizarEstatisticas, 30000);
+            
+            // Formatação automática de campos
+            $(document).on('input', 'input[data-mask="cpf"]', function() {
+                $(this).val(formatarCPF($(this).val()));
+            });
+            
+            $(document).on('input', 'input[data-mask="telefone"]', function() {
+                $(this).val(formatarTelefone($(this).val()));
+            });
+            
+            // Tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
