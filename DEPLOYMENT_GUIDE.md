@@ -104,18 +104,19 @@ pip install -r requirements-prod.txt
 
 ### 4. Configurar banco de dados
 
-#### Para PostgreSQL (planos pagos):
+#### SQLite (Recomendado - mais simples)
 ```bash
-# No dashboard: Databases > PostgreSQL
-# Criar banco e usuário
-# Anotar: HOST, DATABASE, USER, PASSWORD
+# SQLite é automático! 
+# O arquivo db.sqlite3 será criado automaticamente
+# Perfeito para projetos pequenos e médios
 ```
 
-#### Para MySQL (gratuito):
+#### Alternativas avançadas (opcional):
 ```bash
+# Para PostgreSQL (planos pagos):
+# No dashboard: Databases > PostgreSQL
+# Para MySQL (gratuito):
 # No dashboard: Databases > MySQL
-# Criar banco de dados
-# Usar o usuário automático criado
 ```
 
 ### 5. Configurar variáveis de ambiente
@@ -129,8 +130,8 @@ DEBUG=False
 SECRET_KEY=sua-secret-key-super-segura
 ALLOWED_HOSTS=seuusuario.pythonanywhere.com
 
-# Database (exemplo PostgreSQL)
-DATABASE_URL=postgres://usuario:senha@host:5432/nome_db
+# SQLite (automático - não precisa configurar)
+# O banco db.sqlite3 será criado automaticamente
 
 # OpenAI
 OPENAI_API_KEY=sua-chave-openai
@@ -159,6 +160,13 @@ python manage.py createsuperuser --settings=health_system.settings.production
 ### 8. Coletar arquivos estáticos
 ```bash
 python manage.py collectstatic --settings=health_system.settings.production --noinput
+```
+
+### 8.1. Configurar permissões SQLite
+```bash
+# IMPORTANTE para SQLite no PythonAnywhere!
+chmod 664 db.sqlite3  # Arquivo do banco
+chmod 775 .           # Diretório do projeto
 ```
 
 ### 9. Configurar Web App
@@ -316,3 +324,27 @@ touch /var/www/seuusuario_pythonanywhere_com_wsgi.py
 **🎯 Ambientes configurados com sucesso!**
 - **Local:** `health_system.settings.development`
 - **Produção:** `health_system.settings.production`
+
+---
+
+## 💡 Por que SQLite?
+
+### ✅ **Vantagens para este projeto:**
+- **Simplicidade máxima** - Não precisa configurar servidor de banco
+- **Zero configuração** - Funciona out-of-the-box  
+- **Backup fácil** - Apenas um arquivo `db.sqlite3`
+- **Perfeito para projetos médicos** - Até 100GB de dados
+- **Gratuito no PythonAnywhere** - Sem custos adicionais
+
+### 📊 **Capacidade:**
+- **Tamanho:** Até 281 TB (mais que suficiente)
+- **Concorrência:** Múltiplos leitores, 1 escritor
+- **Performance:** Excelente para aplicações web médias
+
+### 🔄 **Quando migrar:**
+Considere PostgreSQL/MySQL apenas se:
+- Múltiplos servidores de aplicação
+- +100 usuários simultâneos escrevendo
+- Análises complexas em tempo real
+
+**Para um sistema de saúde municipal: SQLite é perfeito!** 🎯

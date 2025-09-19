@@ -1,10 +1,10 @@
 """
 Settings para produção no PythonAnywhere
+Usando SQLite para simplicidade
 """
 
 from .base import *
 from decouple import config, Csv
-import dj_database_url
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
@@ -14,13 +14,12 @@ SECRET_KEY = config('SECRET_KEY')
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv(), default='')
 
-# Database para produção (PostgreSQL/MySQL no PythonAnywhere)
+# Database para produção (SQLite - mais simples para PythonAnywhere)
 DATABASES = {
-    'default': dj_database_url.parse(
-        config('DATABASE_URL'),
-        conn_max_age=600,
-        conn_health_checks=True,
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
 
 # WSGI application
