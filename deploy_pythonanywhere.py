@@ -11,7 +11,7 @@ from pathlib import Path
 
 # Configurações
 PYTHONANYWHERE_TOKEN = "587142a8e95f7065f0e043599b711316408637c9"
-PYTHONANYWHERE_USERNAME = "seunome"  # ALTERE para seu username
+PYTHONANYWHERE_USERNAME = "maisagente"  # ALTERE para seu username
 DOMAIN_NAME = f"{PYTHONANYWHERE_USERNAME}.pythonanywhere.com"
 PROJECT_PATH = f"/home/{PYTHONANYWHERE_USERNAME}/health_system"
 
