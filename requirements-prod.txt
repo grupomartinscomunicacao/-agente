@@ -1,0 +1,26 @@
+# Requirements para produção (PythonAnywhere)
+Django==5.2.3
+djangorestframework==3.14.0
+django-cors-headers==4.3.1
+openai==1.3.7
+python-decouple==3.8
+dj-database-url==2.1.0
+django-filter==23.5
+Pillow==10.1.0
+requests==2.31.0
+python-dateutil==2.8.2
+cryptography==41.0.8
+django-crispy-forms==2.1
+crispy-bootstrap5==0.7
+whitenoise==6.6.0
+gunicorn==21.2.0
+
+# Database drivers (escolha um)
+psycopg2-binary==2.9.9  # PostgreSQL
+# mysqlclient==2.2.0    # MySQL (descomente se usar MySQL)
+
+# Cache (opcional no PythonAnywhere)
+# redis==5.0.1          # Se tiver Redis disponível
+
+# Task queue (opcional)
+# celery==5.3.4         # Se usar processamento assíncrono
