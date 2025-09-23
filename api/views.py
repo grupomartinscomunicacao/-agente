@@ -2,12 +2,17 @@
 Views da API REST para o sistema de saúde pública.
 """
 from rest_framework import viewsets, status, filters
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 # from django_filters.rest_framework import DjangoFilterBackend  # Comentado temporariamente
 from django.db.models import Q, Count
 from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+import json
+import re
 
 from cidadaos.models import Cidadao, ContatoEmergencia
 from saude_dados.models import DadosSaude, HistoricoSaude
@@ -447,3 +452,72 @@ class SincronizacaoOfflineAPIView(APIView):
             'erros': len([r for r in resultados if not r['success']]),
             'resultados': resultados
         })
+
+
+def validar_cpf_algoritmo(cpf):
+    """Valida CPF usando o algoritmo oficial."""
+    # Remove caracteres não numéricos
+    cpf = re.sub(r'\D', '', cpf)
+    
+    # Verifica se tem 11 dígitos
+    if len(cpf) != 11:
+        return False
+    
+    # Verifica se não são todos números iguais
+    if cpf == cpf[0] * 11:
+        return False
+    
+    # Calcula o primeiro dígito verificador
+    soma = sum(int(cpf[i]) * (10 - i) for i in range(9))
+    digito1 = 11 - (soma % 11)
+    if digito1 >= 10:
+        digito1 = 0
+    
+    # Calcula o segundo dígito verificador
+    soma = sum(int(cpf[i]) * (11 - i) for i in range(10))
+    digito2 = 11 - (soma % 11)
+    if digito2 >= 10:
+        digito2 = 0
+    
+    # Verifica se os dígitos calculados conferem com os informados
+    return int(cpf[9]) == digito1 and int(cpf[10]) == digito2
+
+
+def formatar_cpf(cpf):
+    """Formata CPF com pontos e hífen."""
+    cpf = re.sub(r'\D', '', cpf)
+    if len(cpf) == 11:
+        return f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}"
+    return cpf
+
+
+@csrf_exempt
+@require_POST
+def validar_cpf_api(request):
+    """API para validação de CPF."""
+    try:
+        data = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+        cpf = data.get('cpf', '')
+        
+        # Validar CPF
+        cpf_valido = validar_cpf_algoritmo(cpf)
+        
+        response_data = {
+            'valido': cpf_valido,
+            'cpf_formatado': formatar_cpf(cpf) if cpf_valido else cpf,
+            'cpf_existe': False
+        }
+        
+        # Verificar se CPF já existe no sistema (apenas se válido)
+        if cpf_valido:
+            cpf_limpo = re.sub(r'\D', '', cpf)
+            cidadao_existe = Cidadao.objects.filter(cpf=cpf_limpo).exists()
+            response_data['cpf_existe'] = cidadao_existe
+        
+        return JsonResponse(response_data)
+        
+    except Exception as e:
+        return JsonResponse({
+            'valido': False,
+            'erro': str(e)
+        }, status=400)

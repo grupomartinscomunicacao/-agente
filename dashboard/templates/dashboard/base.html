@@ -11,95 +11,168 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
-        .sidebar {
-            min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        :root {
+            --primary-color: #6C5CE7;
+            --secondary-color: #A29BFE;
+            --background-start: #F5F7FA;
+            --background-end: #EBF0F5;
+            --text-color: #4A4A4A;
+            --card-bg: rgba(255, 255, 255, 0.7);
+            --card-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+            --sidebar-bg-start: #6C5CE7;
+            --sidebar-bg-end: #4834D4;
+            --white-color: #FFF;
         }
-        
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(120deg, var(--background-start) 0%, var(--background-end) 100%);
+            color: var(--text-color);
+            overflow-x: hidden;
+        }
+
+        .sidebar {
+            background: linear-gradient(180deg, var(--sidebar-bg-start) 0%, var(--sidebar-bg-end) 100%);
+            box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
+            min-height: 100vh;
+        }
+
         .sidebar .nav-link {
             color: rgba(255, 255, 255, 0.8);
+            transition: all 0.3s ease;
+            font-weight: 500;
             padding: 12px 20px;
             border-radius: 8px;
-            margin: 2px 0;
-            transition: all 0.3s;
+            margin: 4px 0;
         }
-        
+
         .sidebar .nav-link:hover,
         .sidebar .nav-link.active {
-            color: white;
-            background: rgba(255, 255, 255, 0.2);
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--white-color);
+            transform: translateX(5px);
         }
-        
+
+        .sidebar .nav-link .fas {
+            width: 20px;
+            text-align: center;
+        }
+
+        .sidebar h5 {
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
         .main-content {
-            padding: 20px;
-            background-color: #f8f9fa;
-            min-height: 100vh;
+            padding-top: 1.5rem;
+            padding-left: 2rem;
+            padding-right: 2rem;
         }
-        
+
+        .page-title {
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
         .stat-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            transition: transform 0.3s;
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 25px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin-bottom: 2rem;
         }
-        
+
         .stat-card:hover {
             transform: translateY(-5px);
+            box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.15);
         }
-        
+
         .stat-card .icon {
-            width: 60px;
-            height: 60px;
+            font-size: 2.5rem;
+            padding: 15px;
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            color: white;
+            display: inline-block;
+            margin-bottom: 15px;
+            color: var(--white-color);
         }
-        
-        .text-primary-custom { color: #667eea !important; }
-        .bg-primary-custom { background: #667eea !important; }
-        .bg-success-custom { background: #28a745 !important; }
-        .bg-warning-custom { background: #ffc107 !important; }
-        .bg-danger-custom { background: #dc3545 !important; }
-        .bg-info-custom { background: #17a2b8 !important; }
-        
-        .alert-priority-alta {
-            border-left: 4px solid #dc3545;
+
+        .stat-card h5 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #888;
+            margin-bottom: 5px;
+            text-transform: uppercase;
         }
-        
-        .alert-priority-media {
-            border-left: 4px solid #ffc107;
+
+        .stat-card .display-4 {
+            font-weight: 700;
+            color: var(--primary-color);
         }
-        
-        .alert-priority-baixa {
-            border-left: 4px solid #28a745;
-        }
-        
-        .risk-badge {
-            font-size: 0.8rem;
-            padding: 6px 12px;
-            border-radius: 20px;
-        }
-        
-        .risk-baixo { background-color: #d4edda; color: #155724; }
-        .risk-medio { background-color: #fff3cd; color: #856404; }
-        .risk-alto { background-color: #f8d7da; color: #721c24; }
-        .risk-critico { background-color: #d1ecf1; color: #0c5460; }
-        
-        .loading-spinner {
-            display: none;
-        }
-        
+
         .chart-container {
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 25px;
             position: relative;
-            height: 300px;
-            margin: 20px 0;
+            height: 350px;
+            margin-bottom: 2rem;
+        }
+
+        .list-group-item {
+            background-color: transparent;
+            border-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .card-header-custom {
+            background-color: transparent;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .alert {
+            border-radius: 12px;
+        }
+
+        .dropdown-menu {
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            border: none;
+        }
+
+        .icon-success { background-color: #28A745 !important; }
+        .icon-warning { background-color: #FFC107 !important; }
+        .icon-danger { background-color: #DC3545 !important; }
+
+        .badge.risk-alto {
+            background-color: rgba(220, 53, 69, 0.1);
+            color: #DC3545;
+        }
+        .badge.risk-medio {
+            background-color: rgba(255, 193, 7, 0.1);
+            color: #FFC107;
+        }
+        .badge.risk-baixo {
+            background-color: rgba(40, 167, 69, 0.1);
+            color: #28A745;
+        }
+        .badge.bg-danger-soft {
+            background-color: rgba(220, 53, 69, 0.1);
+            color: #DC3545;
         }
     </style>
     
@@ -198,7 +271,7 @@
                     {% for message in messages %}
                         <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
                             {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
                     {% endfor %}
                 {% endif %}

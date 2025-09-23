@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "api",
     "ai_integracao",
     "lgpd",
+    "geolocation",
 ]
 
 MIDDLEWARE = [

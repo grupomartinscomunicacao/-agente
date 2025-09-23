@@ -66,6 +66,26 @@ class Cidadao(models.Model):
     cidade = models.CharField(max_length=100)
     estado = models.CharField(max_length=2)
     
+    # Geolocalização
+    latitude = models.DecimalField(
+        max_digits=10, 
+        decimal_places=8, 
+        null=True, 
+        blank=True,
+        help_text="Latitude da localização do cidadão"
+    )
+    longitude = models.DecimalField(
+        max_digits=11, 
+        decimal_places=8, 
+        null=True, 
+        blank=True,
+        help_text="Longitude da localização do cidadão"
+    )
+    endereco_capturado_automaticamente = models.BooleanField(
+        default=False,
+        help_text="Indica se o endereço foi obtido via geolocalização automática"
+    )
+    
     # Dados complementares
     profissao = models.CharField(max_length=100, blank=True)
     renda_familiar = models.DecimalField(
@@ -193,6 +213,61 @@ class Cidadao(models.Model):
             'cidade': self.cidade,
             'estado': self.estado,
         }
+    
+    @property
+    def tem_localizacao(self):
+        """Verifica se o cidadão possui dados de geolocalização."""
+        return self.latitude is not None and self.longitude is not None
+    
+    @property
+    def coordenadas(self):
+        """Retorna as coordenadas em formato de tupla."""
+        if self.tem_localizacao:
+            return (float(self.latitude), float(self.longitude))
+        return None
+    
+    def get_coordenadas_json(self):
+        """Retorna coordenadas em formato JSON para uso em mapas."""
+        if self.tem_localizacao:
+            return {
+                'lat': float(self.latitude),
+                'lng': float(self.longitude),
+                'nome': self.nome,
+                'endereco': f"{self.endereco}, {self.bairro}, {self.cidade}"
+            }
+        return None
+    
+    def calcular_risco_saude_basico(self):
+        """
+        Calcula nível de risco básico baseado em comorbidades e idade.
+        Retorna: 'baixo', 'medio', 'alto'
+        """
+        pontos_risco = 0
+        
+        # Pontuação por idade
+        if self.idade >= 60:
+            pontos_risco += 3
+        elif self.idade >= 40:
+            pontos_risco += 1
+            
+        # Pontuação por comorbidades
+        comorbidades = [
+            self.possui_hipertensao,
+            self.possui_diabetes,
+            self.possui_doenca_cardiaca,
+            self.possui_doenca_renal,
+            self.possui_asma,
+            self.possui_depressao
+        ]
+        pontos_risco += sum(comorbidades) * 2
+        
+        # Classificação final
+        if pontos_risco >= 6:
+            return 'alto'
+        elif pontos_risco >= 3:
+            return 'medio'
+        else:
+            return 'baixo'
 
 
 class ContatoEmergencia(models.Model):

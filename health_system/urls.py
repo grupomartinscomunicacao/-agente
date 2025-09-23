@@ -25,6 +25,7 @@ urlpatterns = [
     path("accounts/", include("django.contrib.auth.urls")),  # URLs de autenticação
     path("api/", include("api.urls")),
     path("lgpd/", include("lgpd.urls")),
+    path("geolocation/", include("geolocation.urls")),  # URLs de geolocalização
     path("", include("dashboard.urls")),  # Dashboard como raiz
 ]
 

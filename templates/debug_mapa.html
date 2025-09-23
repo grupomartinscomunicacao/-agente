@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Mapa</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+          crossorigin=""/>
+    <style>
+        #mapa { height: 400px; }
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .debug { margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Debug do Mapa</h1>
+    
+    <div class="debug">
+        <strong>Teste de Console:</strong>
+        <div id="console"></div>
+    </div>
+    
+    <div id="mapa"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
+            crossorigin=""></script>
+    
+    <script>
+        const consoleDiv = document.getElementById('console');
+        
+        function log(message) {
+            console.log(message);
+            consoleDiv.innerHTML += message + '<br>';
+        }
+        
+        log('1. Iniciando script...');
+        
+        // Teste se Leaflet carregou
+        if (typeof L !== 'undefined') {
+            log('2. ✅ Leaflet carregou com sucesso');
+        } else {
+            log('2. ❌ Leaflet não carregou');
+        }
+        
+        // Criar mapa
+        try {
+            log('3. Criando mapa...');
+            const map = L.map('mapa').setView([-14.235004, -51.92528], 4);
+            log('4. ✅ Mapa criado com sucesso');
+            
+            // Adicionar tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            log('5. ✅ Tiles adicionados');
+            
+            // Testar API
+            log('6. Testando API...');
+            fetch('/geolocation/api/mapa-dados/')
+                .then(response => {
+                    log('7. Resposta recebida: ' + response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    log('8. Dados JSON: ' + JSON.stringify(data));
+                    
+                    if (data.success && data.marcadores) {
+                        log('9. Adicionando ' + data.marcadores.length + ' marcadores...');
+                        
+                        data.marcadores.forEach((item, index) => {
+                            const marker = L.circleMarker([item.lat, item.lng], {
+                                color: item.cor_marcador,
+                                fillColor: item.cor_marcador,
+                                fillOpacity: 0.7,
+                                radius: 8
+                            }).addTo(map);
+                            
+                            marker.bindPopup(`
+                                <strong>${item.nome}</strong><br>
+                                Risco: ${item.nivel_risco}<br>
+                                Coords: ${item.lat}, ${item.lng}
+                            `);
+                            
+                            log('10.' + index + '. Marcador adicionado: ' + item.nome);
+                        });
+                        
+                        // Ajustar visualização se há marcadores
+                        if (data.marcadores.length > 0) {
+                            const group = new L.featureGroup(map._layers);
+                            map.fitBounds(group.getBounds().pad(0.1));
+                            log('11. ✅ Mapa ajustado aos marcadores');
+                        }
+                    } else {
+                        log('9. ❌ Nenhum marcador encontrado');
+                    }
+                })
+                .catch(error => {
+                    log('7. ❌ Erro na API: ' + error);
+                });
+                
+        } catch (error) {
+            log('4. ❌ Erro ao criar mapa: ' + error);
+        }
+    </script>
+</body>
+</html>

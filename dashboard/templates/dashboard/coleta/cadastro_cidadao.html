@@ -189,6 +189,72 @@
                             </div>
                         </div>
                         
+                        <!-- Localização Geográfica -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-map-marked-alt me-2"></i>Localização Geográfica
+                                </h6>
+                                <div class="alert alert-info d-flex align-items-center" role="alert">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <div>
+                                        A captura da localização é opcional, mas ajuda no mapeamento de riscos de saúde por região.
+                                        <strong>Seus dados de localização são protegidos pela LGPD.</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-crosshairs me-1"></i>Captura Automática
+                                    </label>
+                                    <div class="d-grid">
+                                        <button type="button" class="btn btn-outline-primary" id="btnCapturarLocalizacao">
+                                            <i class="fas fa-map-marker-alt me-2"></i>Capturar Minha Localização
+                                        </button>
+                                    </div>
+                                    <div class="form-text">
+                                        Clique para capturar automaticamente sua localização atual.
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="coordenadas-display" class="form-label">Coordenadas Capturadas</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="coordenadas-display" 
+                                               readonly placeholder="Latitude, Longitude">
+                                        <button type="button" class="btn btn-outline-secondary" 
+                                                id="btnLimparLocalizacao" disabled>
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Campos hidden para armazenar coordenadas -->
+                            <input type="hidden" id="id_latitude" name="latitude">
+                            <input type="hidden" id="id_longitude" name="longitude">
+                            <input type="hidden" id="id_endereco_capturado_automaticamente" 
+                                   name="endereco_capturado_automaticamente" value="false">
+                            
+                            <!-- Mapa de preview (inicialmente oculto) -->
+                            <div class="col-12" id="preview-mapa-container" style="display: none;">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-map me-2"></i>Visualização da Localização
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="preview-mapa" style="height: 300px; border-radius: 8px;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <!-- Informações Complementares -->
                         <div class="row mb-4">
                             <div class="col-12">
@@ -246,9 +312,264 @@
     </div>
 {% endblock %}
 
+{% block extra_css %}
+    <!-- Leaflet CSS para mapa -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+          crossorigin=""/>
+    
+    <style>
+        .geolocation-section {
+            border-left: 3px solid var(--primary-color);
+            padding-left: 15px;
+        }
+        
+        #preview-mapa-container {
+            display: none;
+        }
+        
+        #preview-mapa {
+            height: 300px;
+            border-radius: 8px;
+        }
+        
+        .status-localizacao {
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+        
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+{% endblock %}
+
 {% block extra_js %}
+    <!-- Leaflet JS para mapa -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+
 <script>
     $(document).ready(function() {
+        // Variáveis globais para geolocalização
+        let previewMapa = null;
+        let marcadorAtual = null;
+        
+        // Função para capturar localização
+        function capturarLocalizacao() {
+            const btn = $('#btnCapturarLocalizacao');
+            const btnLimpar = $('#btnLimparLocalizacao');
+            
+            // Verificar se o navegador suporta geolocalização
+            if (!navigator.geolocation) {
+                mostrarStatus('Geolocalização não é suportada pelo seu navegador.', 'error');
+                return;
+            }
+            
+            // Atualizar botão
+            btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Obtendo localização...');
+            
+            // Opções de geolocalização
+            const opcoes = {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 300000 // 5 minutos
+            };
+            
+            navigator.geolocation.getCurrentPosition(
+                function(posicao) {
+                    const lat = posicao.coords.latitude;
+                    const lng = posicao.coords.longitude;
+                    const precisao = posicao.coords.accuracy;
+                    
+                    // Atualizar campos
+                    $('#id_latitude').val(lat);
+                    $('#id_longitude').val(lng);
+                    $('#id_endereco_capturado_automaticamente').val('true');
+                    $('#coordenadas-display').val(`${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+                    
+                    // Habilitar botão de limpar
+                    btnLimpar.prop('disabled', false);
+                    
+                    // Mostrar mapa de preview
+                    mostrarPreviewMapa(lat, lng);
+                    
+                    // Buscar endereço por reverse geocoding (opcional)
+                    buscarEnderecoPorCoordenadas(lat, lng);
+                    
+                    // Status de sucesso
+                    mostrarStatus(`Localização capturada com precisão de ${Math.round(precisao)}m`, 'success');
+                    
+                    // Restaurar botão
+                    btn.prop('disabled', false).html('<i class="fas fa-check me-2"></i>Localização Capturada');
+                },
+                function(erro) {
+                    let mensagemErro = 'Erro ao capturar localização: ';
+                    
+                    switch(erro.code) {
+                        case erro.PERMISSION_DENIED:
+                            mensagemErro += 'Permissão negada pelo usuário.';
+                            break;
+                        case erro.POSITION_UNAVAILABLE:
+                            mensagemErro += 'Informações de localização indisponíveis.';
+                            break;
+                        case erro.TIMEOUT:
+                            mensagemErro += 'Tempo limite esgotado.';
+                            break;
+                        default:
+                            mensagemErro += 'Erro desconhecido.';
+                            break;
+                    }
+                    
+                    mostrarStatus(mensagemErro, 'error');
+                    
+                    // Restaurar botão
+                    btn.prop('disabled', false).html('<i class="fas fa-map-marker-alt me-2"></i>Tentar Novamente');
+                },
+                opcoes
+            );
+        }
+        
+        // Função para mostrar preview do mapa
+        function mostrarPreviewMapa(lat, lng) {
+            const container = $('#preview-mapa-container');
+            
+            // Mostrar container
+            container.show();
+            
+            // Inicializar mapa se não existir
+            if (!previewMapa) {
+                previewMapa = L.map('preview-mapa', {
+                    center: [lat, lng],
+                    zoom: 16,
+                    zoomControl: true,
+                    scrollWheelZoom: false
+                });
+                
+                // Adicionar layer do mapa
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(previewMapa);
+            } else {
+                // Atualizar centro do mapa
+                previewMapa.setView([lat, lng], 16);
+            }
+            
+            // Remover marcador anterior
+            if (marcadorAtual) {
+                previewMapa.removeLayer(marcadorAtual);
+            }
+            
+            // Adicionar novo marcador
+            marcadorAtual = L.marker([lat, lng], {
+                draggable: false
+            }).addTo(previewMapa);
+            
+            // Popup do marcador
+            marcadorAtual.bindPopup(`
+                <div class="text-center">
+                    <strong>Sua Localização</strong><br>
+                    <small>Lat: ${lat.toFixed(6)}<br>
+                    Lng: ${lng.toFixed(6)}</small>
+                </div>
+            `).openPopup();
+            
+            // Forçar atualização do mapa
+            setTimeout(() => {
+                previewMapa.invalidateSize();
+            }, 250);
+        }
+        
+        // Função para buscar endereço por coordenadas
+        function buscarEnderecoPorCoordenadas(lat, lng) {
+            // Para desenvolvimento, vamos usar Nominatim (OpenStreetMap)
+            // Em produção, você deveria usar a API do Google Maps
+            const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data.address) {
+                        const endereco = data.display_name;
+                        const address = data.address;
+                        
+                        // Preencher campos de endereço automaticamente se estiverem vazios
+                        if (!$('#id_endereco').val() && endereco) {
+                            $('#id_endereco').val(endereco);
+                        }
+                        
+                        if (!$('#id_cidade').val() && address.city) {
+                            $('#id_cidade').val(address.city);
+                        }
+                        
+                        if (!$('#id_bairro').val() && address.suburb) {
+                            $('#id_bairro').val(address.suburb);
+                        }
+                        
+                        if (!$('#id_cep').val() && address.postcode) {
+                            $('#id_cep').val(address.postcode);
+                        }
+                        
+                        if (!$('#id_estado').val() && address.state_code) {
+                            $('#id_estado').val(address.state_code);
+                        }
+                        
+                        console.log('Endereço obtido:', data);
+                    }
+                })
+                .catch(erro => {
+                    console.log('Erro ao buscar endereço:', erro);
+                    // Não mostrar erro para o usuário, pois é funcionalidade opcional
+                });
+        }
+        
+        // Função para limpar localização
+        function limparLocalizacao() {
+            $('#id_latitude').val('');
+            $('#id_longitude').val('');
+            $('#id_endereco_capturado_automaticamente').val('false');
+            $('#coordenadas-display').val('');
+            $('#preview-mapa-container').hide();
+            $('#btnLimparLocalizacao').prop('disabled', true);
+            $('#btnCapturarLocalizacao').html('<i class="fas fa-map-marker-alt me-2"></i>Capturar Minha Localização');
+            limparStatus();
+            
+            if (marcadorAtual) {
+                previewMapa.removeLayer(marcadorAtual);
+                marcadorAtual = null;
+            }
+        }
+        
+        // Função para mostrar status
+        function mostrarStatus(mensagem, tipo) {
+            // Remover status anterior
+            $('.status-localizacao').remove();
+            
+            // Criar novo status
+            const statusDiv = $(`<div class="status-localizacao status-${tipo}">${mensagem}</div>`);
+            $('#btnCapturarLocalizacao').parent().append(statusDiv);
+        }
+        
+        // Função para limpar status
+        function limparStatus() {
+            $('.status-localizacao').remove();
+        }
+        
+        // Event listeners
+        $('#btnCapturarLocalizacao').on('click', capturarLocalizacao);
+        $('#btnLimparLocalizacao').on('click', limparLocalizacao);
+        
         // Validação em tempo real do CPF
         $('#id_cpf').on('blur', function() {
             const cpf = $(this).val();
@@ -303,6 +624,21 @@
             }
         }).fail(function() {
             console.log('Erro ao consultar CEP');
+        });
+    }
+    
+    function validarCPF(cpf, callback) {
+        $.ajax({
+            url: '/api/validar-cpf/',
+            method: 'POST',
+            data: {
+                cpf: cpf,
+                csrfmiddlewaretoken: $('[name=csrfmiddlewaretoken]').val()
+            },
+            success: callback,
+            error: function() {
+                callback({ valido: false });
+            }
         });
     }
     

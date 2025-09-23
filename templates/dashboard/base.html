@@ -92,6 +92,16 @@
             {% endfor %}
         {% endif %}
 
+        <!-- Page Header with Actions -->
+        <div class="row align-items-center mb-4">
+            <div class="col">
+                <h1 class="h3 mb-0">{% block page_title %}Sistema de Saúde{% endblock %}</h1>
+            </div>
+            <div class="col-auto">
+                {% block page_actions %}{% endblock %}
+            </div>
+        </div>
+
         {% block content %}{% endblock %}
     </div>
 

@@ -2,6 +2,24 @@
 
 {% block title %}Dashboard - Sistema de Saúde{% endblock %}
 
+{% block page_title %}
+    <span class="page-title">Dashboard Principal</span>
+{% endblock %}
+
+{% block page_actions %}
+    <div class="btn-group" role="group">
+        <a href="{% url 'dashboard:coleta_dados' %}" class="btn btn-primary shadow-sm">
+            <i class="fas fa-plus me-2"></i>Nova Coleta
+        </a>
+        <a href="{% url 'geolocation:mapa_risco' %}" class="btn btn-success shadow-sm">
+            <i class="fas fa-map-marked-alt me-2"></i>Mapa de Risco
+        </a>
+        <a href="{% url 'dashboard:gerar_relatorio' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-file-download me-2"></i>Gerar Relatório
+        </a>
+    </div>
+{% endblock %}
+
 {% block content %}
 <div class="row">
     <div class="col-12">

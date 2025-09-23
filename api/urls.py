@@ -9,7 +9,8 @@ from .views import (
     CidadaoViewSet, DadosSaudeViewSet, AnamneseViewSet,
     AlertaSaudeViewSet, RelatorioSaudeViewSet,
     ColetaDadosAPIView, SolicitarAnamneseAPIView,
-    DashboardAPIView, SincronizacaoOfflineAPIView
+    DashboardAPIView, SincronizacaoOfflineAPIView,
+    validar_cpf_api
 )
 
 # Router para ViewSets
@@ -34,4 +35,7 @@ urlpatterns = [
     path('solicitar-anamnese/', SolicitarAnamneseAPIView.as_view(), name='solicitar_anamnese'),
     path('dashboard/', DashboardAPIView.as_view(), name='dashboard'),
     path('sincronizacao/', SincronizacaoOfflineAPIView.as_view(), name='sincronizacao_offline'),
+    
+    # Validações
+    path('validar-cpf/', validar_cpf_api, name='validar_cpf'),
 ]

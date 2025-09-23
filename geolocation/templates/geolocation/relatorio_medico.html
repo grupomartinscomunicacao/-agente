@@ -1,0 +1,230 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Relatório Médico - {{ relatorio.cidadao.nome }}{% endblock %}
+
+{% block page_title %}
+    <span class="page-title">Relatório Médico</span>
+{% endblock %}
+
+{% block page_actions %}
+    <div class="btn-group" role="group">
+        <button type="button" class="btn btn-outline-primary" onclick="window.print()">
+            <i class="fas fa-print me-2"></i>Imprimir
+        </button>
+        <a href="{% url 'geolocation:lista_relatorios' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Voltar à Lista
+        </a>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Informações do Relatório -->
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h4>{{ relatorio.titulo }}</h4>
+                        <p class="text-muted mb-2">
+                            <i class="fas fa-calendar me-1"></i>{{ relatorio.criado_em|date:"d/m/Y H:i" }}
+                        </p>
+                        <span class="badge bg-{{ relatorio.get_status_display|lower }}-soft">
+                            {{ relatorio.get_status_display }}
+                        </span>
+                    </div>
+                    <div class="text-end">
+                        <div class="risk-badge risk-{{ localizacao.nivel_risco }}" 
+                             style="color: white; background-color: {{ nivel_risco_cor }};">
+                            {{ localizacao.get_nivel_risco_display|upper }}
+                        </div>
+                        <p class="small text-muted mt-1 mb-0">
+                            Pontuação: {{ localizacao.pontuacao_risco }}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Resumo Clínico -->
+                <h5><i class="fas fa-stethoscope me-2 text-primary"></i>Resumo Clínico</h5>
+                <div class="border-start border-primary ps-3 mb-4">
+                    <pre class="text-wrap">{{ relatorio.resumo_clinico }}</pre>
+                </div>
+
+                <!-- Recomendações -->
+                <h5><i class="fas fa-clipboard-list me-2 text-success"></i>Recomendações</h5>
+                <div class="border-start border-success ps-3 mb-4">
+                    <pre class="text-wrap">{{ relatorio.recomendacoes }}</pre>
+                </div>
+
+                <!-- Campos opcionais -->
+                {% if relatorio.medicamentos_sugeridos %}
+                    <h5><i class="fas fa-pills me-2 text-warning"></i>Medicamentos Sugeridos</h5>
+                    <div class="border-start border-warning ps-3 mb-4">
+                        <pre class="text-wrap">{{ relatorio.medicamentos_sugeridos }}</pre>
+                    </div>
+                {% endif %}
+
+                {% if relatorio.exames_solicitados %}
+                    <h5><i class="fas fa-vials me-2 text-info"></i>Exames Solicitados</h5>
+                    <div class="border-start border-info ps-3 mb-4">
+                        <pre class="text-wrap">{{ relatorio.exames_solicitados }}</pre>
+                    </div>
+                {% endif %}
+
+                {% if relatorio.observacoes %}
+                    <h5><i class="fas fa-sticky-note me-2 text-secondary"></i>Observações</h5>
+                    <div class="border-start border-secondary ps-3 mb-4">
+                        <pre class="text-wrap">{{ relatorio.observacoes }}</pre>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Informações do Cidadão -->
+            <div class="stat-card">
+                <h5><i class="fas fa-user me-2"></i>Dados do Paciente</h5>
+                <table class="table table-sm">
+                    <tr>
+                        <td><strong>Nome:</strong></td>
+                        <td>{{ cidadao.nome }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Idade:</strong></td>
+                        <td>{{ cidadao.idade }} anos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Sexo:</strong></td>
+                        <td>{{ cidadao.get_sexo_display }}</td>
+                    </tr>
+                    {% if cidadao.profissao %}
+                    <tr>
+                        <td><strong>Profissão:</strong></td>
+                        <td>{{ cidadao.profissao }}</td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <td><strong>Cidade:</strong></td>
+                        <td>{{ cidadao.cidade }}, {{ cidadao.estado }}</td>
+                    </tr>
+                </table>
+
+                <!-- Comorbidades -->
+                {% if cidadao.condicoes_saude_cronicas %}
+                <h6 class="mt-3"><i class="fas fa-heartbeat me-1"></i>Condições Crônicas</h6>
+                <ul class="list-unstyled">
+                    {% for condicao in cidadao.condicoes_saude_cronicas %}
+                        <li><i class="fas fa-circle text-danger me-1" style="font-size: 0.5rem;"></i>{{ condicao }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+
+            <!-- Localização -->
+            <div class="stat-card">
+                <h5><i class="fas fa-map-marker-alt me-2"></i>Localização</h5>
+                <p class="mb-2"><strong>Endereço:</strong><br>{{ localizacao.endereco_completo }}</p>
+                <p class="mb-2"><strong>Coordenadas:</strong><br>
+                    {{ localizacao.latitude }}, {{ localizacao.longitude }}
+                </p>
+                <div id="mini-mapa" style="height: 200px; border-radius: 8px;"></div>
+            </div>
+
+            <!-- Metadados do Relatório -->
+            <div class="stat-card">
+                <h5><i class="fas fa-info-circle me-2"></i>Informações do Relatório</h5>
+                <table class="table table-sm">
+                    <tr>
+                        <td><strong>Tipo:</strong></td>
+                        <td>{{ relatorio.get_tipo_relatorio_display }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Status:</strong></td>
+                        <td>{{ relatorio.get_status_display }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Criado em:</strong></td>
+                        <td>{{ relatorio.criado_em|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                    {% if relatorio.medico_responsavel %}
+                    <tr>
+                        <td><strong>Médico:</strong></td>
+                        <td>{{ relatorio.medico_responsavel.get_full_name|default:relatorio.medico_responsavel.username }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+          crossorigin=""/>
+    
+    <style>
+        @media print {
+            .btn-group { display: none !important; }
+            .sidebar { display: none !important; }
+            .main-content { margin-left: 0 !important; width: 100% !important; }
+            #mini-mapa { display: none !important; }
+        }
+        
+        pre.text-wrap {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: inherit;
+            background: transparent;
+            border: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .risk-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+    </style>
+{% endblock %}
+
+{% block extra_js %}
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Mini mapa da localização
+        const lat = {{ localizacao.latitude }};
+        const lng = {{ localizacao.longitude }};
+        
+        const miniMapa = L.map('mini-mapa', {
+            center: [lat, lng],
+            zoom: 15,
+            zoomControl: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: false,
+            boxZoom: false,
+            keyboard: false,
+            dragging: false
+        });
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(miniMapa);
+        
+        // Marcador da localização
+        const cor = '{{ nivel_risco_cor }}';
+        L.circleMarker([lat, lng], {
+            color: cor,
+            fillColor: cor,
+            fillOpacity: 0.7,
+            radius: 10,
+            weight: 3
+        }).addTo(miniMapa);
+    });
+    </script>
+{% endblock %}

@@ -29,72 +29,108 @@ from utils.tasks import gerar_anamnese_automatica
 from ai_integracao.assistant_service import OpenAIAssistantService
 
 
-class DashboardView(LoginRequiredMixin, TemplateView):
+class DashboardView(TemplateView):
     """Dashboard principal com estatísticas em tempo real."""
     template_name = 'dashboard/dashboard.html'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
+        hoje = timezone.now().date()
+
+        # Tenta obter estatísticas, com fallback
         try:
-            # Estatísticas gerais
             stats = EstatisticaTempoReal.get_current()
             stats.atualizar_contadores()
         except Exception as e:
             logger.error(f"Erro ao obter estatísticas: {e}")
-            # Criar stats vazias como fallback
-            stats = type('Stats', (), {
-                'total_cidadaos_cadastrados': 0,
-                'total_atendimentos_hoje': 0,
-                'total_anamneses_pendentes': 0,
-                'alertas_nao_resolvidos': 0,
-                'casos_risco_alto_hoje': 0,
-                'ultima_atualizacao': timezone.now()
-            })()
+            stats = self._get_fallback_stats()
         
-        try:
-            alertas_urgentes = AlertaSaude.objects.filter(
-                prioridade='urgente', 
-                resolvido=False
-            )[:5]
-        except:
-            alertas_urgentes = []
-            
-        try:
-            anamneses_pendentes = Anamnese.objects.filter(
-                status='pendente'
-            )[:10]
-        except:
-            anamneses_pendentes = []
-            
-        try:
-            casos_alto_risco_hoje = Anamnese.objects.filter(
-                criado_em__date=timezone.now().date(),
-                triagem_risco__in=['alto', 'critico']
-            )
-        except:
-            casos_alto_risco_hoje = []
-        
+        # Busca dados para os cards e listas
         context.update({
             'stats': stats,
-            'alertas_urgentes': alertas_urgentes,
-            'anamneses_pendentes': anamneses_pendentes,
-            'casos_alto_risco_hoje': casos_alto_risco_hoje,
+            'alertas_urgentes': self._get_alertas_urgentes(),
+            'anamneses_pendentes': self._get_anamneses_pendentes(),
         })
+
+        # Prepara dados para os gráficos
+        stats.atendimentos_por_dia = self._get_atendimentos_por_dia_data()
+        stats.distribuicao_risco_hoje = self._get_distribuicao_risco_data(hoje)
         
         return context
+
+    def _get_fallback_stats(self):
+        """Retorna um objeto de estatísticas vazio em caso de erro."""
+        # Contar riscos baseado na localização de saúde (dados atuais) 
+        from geolocation.models import LocalizacaoSaude
+        alto_risco = LocalizacaoSaude.objects.filter(nivel_risco__in=['alto', 'critico']).count()
         
-        # Distribuição de risco
-        distribuicao_risco = Anamnese.objects.filter(
-            criado_em__date=hoje
-        ).values('triagem_risco').annotate(count=Count('id'))
-        
-        context.update({
-            'atendimentos_por_dia': json.dumps(atendimentos_por_dia),
-            'distribuicao_risco': json.dumps(list(distribuicao_risco)),
-        })
-        
-        return context
+        return type('Stats', (), {
+            'total_cidadaos_cadastrados': Cidadao.objects.count(),
+            'total_atendimentos_hoje': Anamnese.objects.filter(criado_em__date=timezone.now().date()).count(),
+            'total_anamneses_pendentes': Anamnese.objects.filter(status='pendente').count(),
+            'casos_risco_alto_hoje': alto_risco,
+            'ultima_atualizacao': timezone.now()
+        })()
+
+    def _get_alertas_urgentes(self):
+        """Retorna os 5 alertas urgentes mais recentes."""
+        try:
+            return AlertaSaude.objects.filter(resolvido=False).order_by('-prioridade', '-criado_em')[:5]
+        except Exception as e:
+            logger.error(f"Erro ao buscar alertas urgentes: {e}")
+            return []
+
+    def _get_anamneses_pendentes(self):
+        """Retorna as 10 anamneses pendentes mais recentes."""
+        try:
+            return Anamnese.objects.filter(status='pendente').order_by('-criado_em')[:10]
+        except Exception as e:
+            logger.error(f"Erro ao buscar anamneses pendentes: {e}")
+            return []
+
+    def _get_atendimentos_por_dia_data(self):
+        """Retorna dados de atendimentos dos últimos 7 dias para o gráfico."""
+        labels, data = [], []
+        try:
+            end_date = timezone.now()
+            start_date = end_date - timedelta(days=6)
+            
+            atendimentos = (
+                Anamnese.objects
+                .filter(criado_em__range=[start_date, end_date])
+                .values('criado_em__date')
+                .annotate(count=Count('id'))
+                .order_by('criado_em__date')
+            )
+            
+            atendimentos_dict = {item['criado_em__date']: item['count'] for item in atendimentos}
+            
+            for i in range(7):
+                day = start_date.date() + timedelta(days=i)
+                labels.append(day.strftime('%d/%m'))
+                data.append(atendimentos_dict.get(day, 0))
+        except Exception as e:
+            logger.error(f"Erro ao gerar dados de atendimentos por dia: {e}")
+
+        return {'labels': labels, 'data': data}
+
+    def _get_distribuicao_risco_data(self, hoje):
+        """Retorna a distribuição de risco de hoje para o gráfico."""
+        dist_risco = {'alto': 0, 'medio': 0, 'baixo': 0}
+        try:
+            riscos = (
+                Anamnese.objects
+                .filter(criado_em__date=hoje)
+                .values('triagem_risco')
+                .annotate(count=Count('id'))
+            )
+            for risco in riscos:
+                if risco['triagem_risco'] in dist_risco:
+                    dist_risco[risco['triagem_risco']] = risco['count']
+        except Exception as e:
+            logger.error(f"Erro ao gerar dados de distribuição de risco: {e}")
+            
+        return dist_risco
 
 
 class ColetaDadosView(LoginRequiredMixin, TemplateView):
@@ -102,7 +138,7 @@ class ColetaDadosView(LoginRequiredMixin, TemplateView):
     template_name = 'dashboard/coleta/coleta_dados.html'
 
 
-class CadastroCidadaoView(LoginRequiredMixin, CreateView):
+class CadastroCidadaoView(CreateView):
     """Formulário para cadastro de cidadão."""
     model = Cidadao
     template_name = 'dashboard/coleta/cadastro_cidadao.html'
@@ -112,7 +148,8 @@ class CadastroCidadaoView(LoginRequiredMixin, CreateView):
         'estado', 'profissao', 'renda_familiar', 'possui_plano_saude',
         'possui_hipertensao', 'possui_diabetes', 'possui_doenca_cardiaca',
         'possui_doenca_renal', 'possui_asma', 'possui_depressao',
-        'medicamentos_continuo', 'alergias_conhecidas', 'cirurgias_anteriores'
+        'medicamentos_continuo', 'alergias_conhecidas', 'cirurgias_anteriores',
+        'latitude', 'longitude', 'endereco_capturado_automaticamente'
     ]
     
     def form_valid(self, form):
@@ -133,8 +170,29 @@ class CadastroCidadaoView(LoginRequiredMixin, CreateView):
             return self.form_invalid(form)
         form.instance.telefone = tel_formatado
         
+        # Debug: Verificar se coordenadas foram capturadas
+        lat = form.cleaned_data.get('latitude')
+        lng = form.cleaned_data.get('longitude')
+        print(f"DEBUG: Coordenadas capturadas - Lat: {lat}, Lng: {lng}")
+        
         response = super().form_valid(form)
         messages.success(self.request, f'Cidadão {self.object.nome} cadastrado com sucesso!')
+        
+        # Se há coordenadas, criar LocalizacaoSaude
+        if lat is not None and lng is not None:
+            from geolocation.models import LocalizacaoSaude
+            try:
+                LocalizacaoSaude.objects.create(
+                    cidadao=self.object,
+                    latitude=lat,
+                    longitude=lng,
+                    endereco_completo=form.cleaned_data.get('endereco', ''),
+                    fonte_localizacao='html5'
+                )
+                print(f"DEBUG: LocalizacaoSaude criada para {self.object.nome}")
+            except Exception as e:
+                print(f"DEBUG: Erro ao criar LocalizacaoSaude: {e}")
+        
         return response
     
     def get_success_url(self):
@@ -183,7 +241,56 @@ class ColetaSaudeView(LoginRequiredMixin, CreateView):
                 form.instance.sintomas_principais
             )
         
+        print(f"DEBUG: form_valid chamado para dados de saúde")
+        print(f"DEBUG: Salvando dados para {form.instance.cidadao.nome}")
+        
         response = super().form_valid(form)
+        
+        print(f"DEBUG: Dados salvos com ID {self.object.id}")
+        
+        # Processar risco médico e criar LocalizacaoSaude se cidadão tem coordenadas
+        cidadao = self.object.cidadao
+        if cidadao.latitude is not None and cidadao.longitude is not None:
+            from geolocation.models import LocalizacaoSaude
+            try:
+                # Buscar ou criar LocalizacaoSaude
+                loc_saude, created = LocalizacaoSaude.objects.get_or_create(
+                    cidadao=cidadao,
+                    defaults={
+                        'latitude': cidadao.latitude,
+                        'longitude': cidadao.longitude,
+                        'endereco_completo': cidadao.endereco or '',
+                        'fonte_localizacao': 'cadastro_cidadao'
+                    }
+                )
+                
+                # Processar dados de saúde
+                loc_saude.processar_dados_saude(self.object)
+                
+                # Calcular risco
+                risco = loc_saude.calcular_risco_completo()
+                print(f"DEBUG: Risco calculado para {cidadao.nome}: {risco}")
+                
+                # Gerar relatório médico
+                loc_saude.gerar_relatorio_automatico()
+                
+                messages.success(
+                    self.request, 
+                    f'Dados coletados! Risco calculado: {risco}. Relatório médico gerado.'
+                )
+                
+            except Exception as e:
+                print(f"DEBUG: Erro ao processar localização e risco: {e}")
+                messages.warning(
+                    self.request,
+                    'Dados coletados, mas houve erro no processamento de risco.'
+                )
+        else:
+            print(f"DEBUG: Cidadão {cidadao.nome} não possui coordenadas")
+            messages.warning(
+                self.request,
+                'Dados coletados, mas cidadão não possui localização para mapeamento.'
+            )
         
         # Agenda geração de anamnese automática
         gerar_anamnese_automatica.delay(
@@ -192,10 +299,7 @@ class ColetaSaudeView(LoginRequiredMixin, CreateView):
             modelo='gpt-3.5-turbo'
         )
         
-        messages.success(
-            self.request, 
-            'Dados coletados com sucesso! Anamnese será gerada automaticamente.'
-        )
+        return response
         
         return response
     
@@ -479,6 +583,102 @@ class RelatorioDetailView(LoginRequiredMixin, DetailView):
     model = RelatorioSaude
     template_name = 'dashboard/relatorios/relatorio_detail.html'
     context_object_name = 'relatorio'
+
+
+class RelatorioCidadaosView(LoginRequiredMixin, ListView):
+    """Relatório de cidadãos com filtros avançados."""
+    model = Cidadao
+    template_name = 'dashboard/relatorios/relatorio_cidadaos.html'
+    context_object_name = 'cidadaos'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        queryset = Cidadao.objects.select_related().prefetch_related('dados_saude', 'localizacoes_saude').all()
+        
+        # Filtro por bairro
+        bairro = self.request.GET.get('bairro')
+        if bairro:
+            queryset = queryset.filter(bairro__icontains=bairro)
+        
+        # Filtro por doença crônica (usando campos booleanos)
+        doenca_cronica = self.request.GET.get('doenca_cronica')
+        if doenca_cronica:
+            if doenca_cronica.lower() == 'hipertensão':
+                queryset = queryset.filter(possui_hipertensao=True)
+            elif doenca_cronica.lower() == 'diabetes':
+                queryset = queryset.filter(possui_diabetes=True)
+            elif doenca_cronica.lower() == 'doença cardíaca':
+                queryset = queryset.filter(possui_doenca_cardiaca=True)
+            elif doenca_cronica.lower() == 'doença renal':
+                queryset = queryset.filter(possui_doenca_renal=True)
+            elif doenca_cronica.lower() == 'asma':
+                queryset = queryset.filter(possui_asma=True)
+            elif doenca_cronica.lower() == 'depressão/ansiedade':
+                queryset = queryset.filter(possui_depressao=True)
+        
+        # Filtro por risco
+        risco = self.request.GET.get('risco')
+        if risco:
+            queryset = queryset.filter(localizacoes_saude__nivel_risco=risco)
+        
+        return queryset.order_by('-criado_em')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Opções para filtros
+        context['bairros_disponiveis'] = list(
+            Cidadao.objects.exclude(bairro__isnull=True)
+            .exclude(bairro__exact='')
+            .values_list('bairro', flat=True)
+            .distinct()
+            .order_by('bairro')
+        )
+        
+        # Doenças crônicas disponíveis baseadas nos campos do modelo
+        context['doencas_disponiveis'] = [
+            'Hipertensão',
+            'Diabetes',
+            'Doença Cardíaca',
+            'Doença Renal',
+            'Asma',
+            'Depressão/Ansiedade'
+        ]
+        
+        # Níveis de risco
+        context['niveis_risco'] = [
+            {'value': 'baixo', 'label': 'Baixo'},
+            {'value': 'medio', 'label': 'Médio'},
+            {'value': 'alto', 'label': 'Alto'},
+            {'value': 'critico', 'label': 'Crítico'},
+        ]
+        
+        # Filtros ativos
+        context['filtros_ativos'] = {
+            'bairro': self.request.GET.get('bairro', ''),
+            'doenca_cronica': self.request.GET.get('doenca_cronica', ''),
+            'risco': self.request.GET.get('risco', ''),
+        }
+        
+        # Estatísticas do resultado filtrado
+        cidadaos_filtrados = self.get_queryset()
+        context['total_cidadaos'] = cidadaos_filtrados.count()
+        
+        # Distribuição por risco no resultado filtrado
+        from django.db.models import Count
+        distribuicao_risco = cidadaos_filtrados.filter(
+            localizacoes_saude__isnull=False
+        ).values('localizacoes_saude__nivel_risco').annotate(
+            count=Count('id')
+        )
+        
+        context['distribuicao_risco'] = {}
+        for item in distribuicao_risco:
+            nivel = item['localizacoes_saude__nivel_risco']
+            count = item['count']
+            context['distribuicao_risco'][nivel] = count
+        
+        return context
 
 
 # Views AJAX

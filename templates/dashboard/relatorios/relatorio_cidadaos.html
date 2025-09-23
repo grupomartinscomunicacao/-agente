@@ -1,0 +1,309 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Relatório de Cidadãos - Sistema de Saúde{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-users me-2"></i>Relatório de Cidadãos</h2>
+            <div>
+                <a href="{% url 'dashboard:relatorios' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Voltar aos Relatórios
+                </a>
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-filter me-2"></i>Filtros
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="get" id="filtros-form">
+                    <div class="row g-3">
+                        <!-- Filtro por Bairro -->
+                        <div class="col-md-4">
+                            <label for="bairro" class="form-label">Bairro</label>
+                            <select class="form-select" id="bairro" name="bairro">
+                                <option value="">Todos os bairros</option>
+                                {% for bairro in bairros_disponiveis %}
+                                    <option value="{{ bairro }}" {% if filtros_ativos.bairro == bairro %}selected{% endif %}>
+                                        {{ bairro }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <!-- Filtro por Doença Crônica -->
+                        <div class="col-md-4">
+                            <label for="doenca_cronica" class="form-label">Doença Crônica</label>
+                            <select class="form-select" id="doenca_cronica" name="doenca_cronica">
+                                <option value="">Todas as condições</option>
+                                {% for doenca in doencas_disponiveis %}
+                                    <option value="{{ doenca }}" {% if filtros_ativos.doenca_cronica == doenca %}selected{% endif %}>
+                                        {{ doenca }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <!-- Filtro por Risco -->
+                        <div class="col-md-4">
+                            <label for="risco" class="form-label">Nível de Risco</label>
+                            <select class="form-select" id="risco" name="risco">
+                                <option value="">Todos os riscos</option>
+                                {% for nivel in niveis_risco %}
+                                    <option value="{{ nivel.value }}" {% if filtros_ativos.risco == nivel.value %}selected{% endif %}>
+                                        {{ nivel.label }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search me-2"></i>Filtrar
+                            </button>
+                            <a href="{% url 'dashboard:relatorio_cidadaos' %}" class="btn btn-outline-secondary ms-2">
+                                <i class="fas fa-times me-2"></i>Limpar Filtros
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Estatísticas do Filtro -->
+        {% if total_cidadaos > 0 %}
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="fas fa-users fa-2x"></i>
+                            </div>
+                            <div>
+                                <h5 class="card-title">Total</h5>
+                                <h3 class="mb-0">{{ total_cidadaos }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="fas fa-check-circle fa-2x"></i>
+                            </div>
+                            <div>
+                                <h5 class="card-title">Baixo Risco</h5>
+                                <h3 class="mb-0">{{ distribuicao_risco.baixo|default:0 }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="fas fa-exclamation-triangle fa-2x"></i>
+                            </div>
+                            <div>
+                                <h5 class="card-title">Médio Risco</h5>
+                                <h3 class="mb-0">{{ distribuicao_risco.medio|default:0 }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="card bg-danger text-white">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="fas fa-exclamation-circle fa-2x"></i>
+                            </div>
+                            <div>
+                                <h5 class="card-title">Alto Risco</h5>
+                                <h3 class="mb-0">{{ distribuicao_risco.alto|default:0 }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Lista de Cidadãos -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list me-2"></i>Cidadãos Encontrados
+                    </h5>
+                    {% if total_cidadaos > 0 %}
+                    <small class="text-muted">{{ total_cidadaos }} cidadão{{ total_cidadaos|pluralize:"s" }} encontrado{{ total_cidadaos|pluralize:"s" }}</small>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                {% if cidadaos %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Idade</th>
+                                <th>Bairro</th>
+                                <th>Cidade</th>
+                                <th>Condições Crônicas</th>
+                                <th>Nível de Risco</th>
+                                <th>Última Coleta</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cidadao in cidadaos %}
+                            <tr>
+                                <td>
+                                    <strong>{{ cidadao.nome }}</strong>
+                                </td>
+                                <td>{{ cidadao.idade }} anos</td>
+                                <td>{{ cidadao.bairro|default:"-" }}</td>
+                                <td>{{ cidadao.cidade|default:"-" }}/{{ cidadao.estado|default:"-" }}</td>
+                                <td>
+                                    {% with cidadao.condicoes_saude_cronicas as condicoes %}
+                                        {% if condicoes %}
+                                            <span class="text-warning">
+                                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                                {% for condicao in condicoes %}{{ condicao }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">Nenhuma</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    {% with cidadao.localizacoes_saude.first as localizacao %}
+                                        {% if localizacao %}
+                                            {% with localizacao.nivel_risco as risco %}
+                                                {% if risco == 'baixo' %}
+                                                    <span class="badge bg-success">Baixo</span>
+                                                {% elif risco == 'medio' %}
+                                                    <span class="badge bg-warning">Médio</span>
+                                                {% elif risco == 'alto' %}
+                                                    <span class="badge bg-danger">Alto</span>
+                                                {% elif risco == 'critico' %}
+                                                    <span class="badge bg-dark">Crítico</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">{{ risco|capfirst }}</span>
+                                                {% endif %}
+                                            {% endwith %}
+                                        {% else %}
+                                            <span class="badge bg-secondary">Não avaliado</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    {% with cidadao.dados_saude.first as ultimo_dado %}
+                                        {% if ultimo_dado %}
+                                            {{ ultimo_dado.criado_em|date:"d/m/Y H:i" }}
+                                        {% else %}
+                                            <span class="text-muted">Nunca</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{% url 'dashboard:cidadao_detail' cidadao.id %}" class="btn btn-sm btn-outline-primary" title="Ver Detalhes">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        {% if cidadao.localizacoes_saude.exists %}
+                                        <a href="/geolocation/mapa/?cidadao={{ cidadao.id }}" class="btn btn-sm btn-outline-info" title="Ver no Mapa" target="_blank">
+                                            <i class="fas fa-map-marked-alt"></i>
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Paginação -->
+                {% if is_paginated %}
+                <nav aria-label="Paginação">
+                    <ul class="pagination justify-content-center mt-4">
+                        {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% for key, value in filtros_ativos.items %}{% if value %}{{ key }}={{ value }}&{% endif %}{% endfor %}page=1" title="Primeira página">
+                                <i class="fas fa-angle-double-left"></i>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?{% for key, value in filtros_ativos.items %}{% if value %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}" title="Página anterior">
+                                <i class="fas fa-angle-left"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                        <li class="page-item active">
+                            <span class="page-link">
+                                Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                            </span>
+                        </li>
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% for key, value in filtros_ativos.items %}{% if value %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}" title="Próxima página">
+                                <i class="fas fa-angle-right"></i>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?{% for key, value in filtros_ativos.items %}{% if value %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.paginator.num_pages }}" title="Última página">
+                                <i class="fas fa-angle-double-right"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+                
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Nenhum cidadão encontrado</h5>
+                    <p class="text-muted">Tente ajustar os filtros ou limpar as seleções.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-submit do form quando os filtros mudarem
+    const selects = document.querySelectorAll('#filtros-form select');
+    selects.forEach(select => {
+        select.addEventListener('change', function() {
+            document.getElementById('filtros-form').submit();
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -189,15 +189,16 @@ class EstatisticaTempoReal(models.Model):
             status='pendente'
         ).count()
         
-        # Riscos hoje
-        self.casos_risco_alto_hoje = Anamnese.objects.filter(
-            criado_em__date=hoje,
-            triagem_risco='alto'
+        # Riscos baseados apenas em cidadãos que têm anamneses (aparecem no mapa)
+        from geolocation.models import LocalizacaoSaude
+        self.casos_risco_alto_hoje = LocalizacaoSaude.objects.filter(
+            nivel_risco__in=['alto', 'critico'],
+            anamnese__isnull=False  # Apenas com anamnese
         ).count()
         
-        self.casos_risco_medio_hoje = Anamnese.objects.filter(
-            criado_em__date=hoje,
-            triagem_risco='medio'
+        self.casos_risco_medio_hoje = LocalizacaoSaude.objects.filter(
+            nivel_risco='medio',
+            anamnese__isnull=False  # Apenas com anamnese
         ).count()
         
         # Alertas não resolvidos
