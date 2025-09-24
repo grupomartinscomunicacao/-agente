@@ -1,0 +1,119 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Dashboard - Teste Agenda{% endblock %}
+
+{% block page_title %}
+    <span class="page-title">Dashboard - DEBUG AGENDA</span>
+{% endblock %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h4>🔍 DEBUG: Dados da Agenda</h4>
+                <p><strong>Visitas Hoje:</strong> {{ visitas_hoje|length }} item(s)</p>
+                <p><strong>Próximas Visitas:</strong> {{ proximas_visitas|length }} item(s)</p>
+                
+                {% if visitas_hoje %}
+                    <h5>📅 Visitas de Hoje:</h5>
+                    <ul>
+                    {% for visita in visitas_hoje %}
+                        <li>{{ visita.cidadao.nome }} - {{ visita.data_visita|date:"H:i" }} ({{ visita.get_status_display }})</li>
+                    {% endfor %}
+                    </ul>
+                {% endif %}
+                
+                {% if proximas_visitas %}
+                    <h5>📅 Próximas Visitas:</h5>
+                    <ul>
+                    {% for visita in proximas_visitas %}
+                        <li>{{ visita.cidadao.nome }} - {{ visita.data_visita|date:"d/m H:i" }}</li>
+                    {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Layout Original em 3 Colunas -->
+    <div class="row">
+        <!-- Alertas Urgentes -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-circle me-2"></i>Alertas Urgentes</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-center text-muted">Nenhum alerta urgente.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Anamneses Pendentes -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0"><i class="fas fa-hourglass-half me-2"></i>Pendentes ({{ anamneses_pendentes|length }})</h5>
+                </div>
+                <div class="card-body">
+                    {% for anamnese in anamneses_pendentes|slice:":3" %}
+                        <p class="small mb-1">{{ anamnese.cidadao.nome }}</p>
+                    {% empty %}
+                        <p class="text-center text-muted">Nenhuma anamnese pendente.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Agenda de Visitas -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>Agenda de Visitas
+                        {% if visitas_hoje %}
+                            <span class="badge bg-light text-primary ms-2">{{ visitas_hoje|length }}</span>
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <h6 class="text-primary">📅 Hoje ({{ visitas_hoje|length }})</h6>
+                    {% if visitas_hoje %}
+                        {% for visita in visitas_hoje %}
+                            <div class="border-bottom py-2">
+                                <strong>{{ visita.cidadao.nome }}</strong><br>
+                                <small class="text-muted">{{ visita.data_visita|date:"H:i" }} - {{ visita.get_motivo_display }}</small><br>
+                                <span class="badge bg-success">{{ visita.get_status_display }}</span>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted small">Nenhuma visita para hoje</p>
+                    {% endif %}
+                    
+                    <hr>
+                    
+                    <h6 class="text-info">🗓️ Próximas ({{ proximas_visitas|length }})</h6>
+                    {% if proximas_visitas %}
+                        {% for visita in proximas_visitas %}
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span>{{ visita.cidadao.nome }}</span>
+                                <span class="text-muted">{{ visita.data_visita|date:"d/m H:i" }}</span>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted small">Nenhuma próxima visita</p>
+                    {% endif %}
+                    
+                    <div class="text-center mt-3">
+                        <button class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus"></i> Nova Visita
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-calendar"></i> Calendário
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

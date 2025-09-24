@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste FullCalendar Debug</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- FullCalendar CSS - Versão mais recente -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
+    
+    <style>
+        .debug-info {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #007bff;
+        }
+        
+        .calendar-container {
+            margin-top: 20px;
+            min-height: 400px;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>🐛 Debug do FullCalendar</h1>
+        
+        <div class="debug-info">
+            <h5>Status dos Scripts:</h5>
+            <ul id="script-status">
+                <li>Carregando...</li>
+            </ul>
+        </div>
+        
+        <div class="calendar-container">
+            <h5>Calendário:</h5>
+            <div id="calendar-debug"></div>
+        </div>
+        
+        <div class="debug-info">
+            <h5>Console de Debug:</h5>
+            <div id="debug-console" style="font-family: monospace; max-height: 200px; overflow-y: auto; background: #000; color: #fff; padding: 10px;">
+            </div>
+        </div>
+        
+        <div class="mt-3">
+            <button onclick="testCalendar()" class="btn btn-primary">Testar Calendário</button>
+            <button onclick="testAPI()" class="btn btn-success">Testar API</button>
+            <button onclick="clearDebug()" class="btn btn-warning">Limpar Console</button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- FullCalendar JS - Versão mais recente -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/locales/pt-br.global.min.js"></script>
+
+    <script>
+        let debugConsole = document.getElementById('debug-console');
+        let calendar;
+        
+        function debugLog(message) {
+            console.log(message);
+            debugConsole.innerHTML += message + '\n';
+            debugConsole.scrollTop = debugConsole.scrollHeight;
+        }
+        
+        function clearDebug() {
+            debugConsole.innerHTML = '';
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            debugLog('🔄 Página carregada');
+            
+            // Verificar se os scripts foram carregados
+            let statusList = document.getElementById('script-status');
+            statusList.innerHTML = '';
+            
+            // jQuery
+            if (typeof jQuery !== 'undefined') {
+                statusList.innerHTML += '<li class="text-success">✅ jQuery carregado</li>';
+                debugLog('✅ jQuery: ' + jQuery.fn.jquery);
+            } else {
+                statusList.innerHTML += '<li class="text-danger">❌ jQuery não carregado</li>';
+                debugLog('❌ jQuery não encontrado');
+            }
+            
+            // Bootstrap
+            if (typeof bootstrap !== 'undefined') {
+                statusList.innerHTML += '<li class="text-success">✅ Bootstrap carregado</li>';
+                debugLog('✅ Bootstrap carregado');
+            } else {
+                statusList.innerHTML += '<li class="text-danger">❌ Bootstrap não carregado</li>';
+                debugLog('❌ Bootstrap não encontrado');
+            }
+            
+            // FullCalendar
+            if (typeof FullCalendar !== 'undefined') {
+                statusList.innerHTML += '<li class="text-success">✅ FullCalendar carregado</li>';
+                debugLog('✅ FullCalendar: ' + FullCalendar.version);
+            } else {
+                statusList.innerHTML += '<li class="text-danger">❌ FullCalendar não carregado</li>';
+                debugLog('❌ FullCalendar não encontrado');
+            }
+            
+            // Tentar inicializar o calendário
+            debugLog('🔄 Tentando inicializar calendário...');
+            testCalendar();
+        });
+        
+        function testCalendar() {
+            try {
+                if (typeof FullCalendar === 'undefined') {
+                    debugLog('❌ FullCalendar não está disponível');
+                    return;
+                }
+                
+                let calendarEl = document.getElementById('calendar-debug');
+                
+                if (calendar) {
+                    calendar.destroy();
+                    debugLog('🗑️ Calendário anterior destruído');
+                }
+                
+                calendar = new FullCalendar.Calendar(calendarEl, {
+                    locale: 'pt-br',
+                    initialView: 'dayGridMonth',
+                    headerToolbar: {
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: 'dayGridMonth,timeGridWeek'
+                    },
+                    events: [
+                        {
+                            id: '1',
+                            title: 'Teste - Maria Silva',
+                            start: '2025-09-23T09:00:00',
+                            backgroundColor: '#28a745',
+                            borderColor: '#28a745'
+                        },
+                        {
+                            id: '2', 
+                            title: 'Teste - João Santos',
+                            start: '2025-09-24T14:30:00',
+                            backgroundColor: '#ffc107',
+                            borderColor: '#ffc107'
+                        }
+                    ],
+                    eventClick: function(info) {
+                        debugLog('🖱️ Evento clicado: ' + info.event.title);
+                    },
+                    dateClick: function(info) {
+                        debugLog('📅 Data clicada: ' + info.dateStr);
+                    }
+                });
+                
+                calendar.render();
+                debugLog('✅ Calendário inicializado com sucesso!');
+                
+            } catch (error) {
+                debugLog('❌ Erro ao inicializar calendário: ' + error.message);
+                console.error('Erro completo:', error);
+            }
+        }
+        
+        function testAPI() {
+            debugLog('🔄 Testando API de eventos...');
+            
+            fetch('/api/agenda/eventos/')
+                .then(response => {
+                    debugLog('📡 Resposta da API: ' + response.status);
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        throw new Error('HTTP ' + response.status);
+                    }
+                })
+                .then(data => {
+                    debugLog('📊 Eventos recebidos: ' + data.length);
+                    if (data.length > 0) {
+                        debugLog('🎯 Primeiro evento: ' + data[0].title);
+                        
+                        // Atualizar calendário com dados reais
+                        if (calendar) {
+                            calendar.removeAllEvents();
+                            calendar.addEventSource(data);
+                            debugLog('✅ Calendário atualizado com dados da API');
+                        }
+                    }
+                })
+                .catch(error => {
+                    debugLog('❌ Erro na API: ' + error.message);
+                });
+        }
+    </script>
+</body>
+</html>

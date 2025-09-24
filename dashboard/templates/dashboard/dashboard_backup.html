@@ -219,13 +219,136 @@
             </div>
         </div>
 
-        <!-- TESTE AGENDA SIMPLES -->
+        <!-- Agenda de Visitas -->
         <div class="col-lg-4">
-            <div class="stat-card">
-                <h5>🧪 TESTE AGENDA</h5>
-                <p>Se você vê isso, a posição está correta!</p>
-                <p>Visitas hoje: {{ visitas_hoje|length }}</p>
-                <p>Próximas: {{ proximas_visitas|length }}</p>
+            <div class="stat-card" style="border: 2px solid #007bff; background: #f8f9fa; min-height: 400px;">
+                <div class="card-header-custom d-flex justify-content-between align-items-center mb-3" style="background: #007bff; color: white; padding: 15px;">
+                    <h5 class="mb-0" style="color: white;">
+                        <i class="fas fa-calendar-alt me-2"></i>📅 Agenda de Visitas
+                        {% if visitas_hoje %}
+                            <span class="badge bg-light text-primary ms-2">{{ visitas_hoje|length }}</span>
+                        {% endif %}
+                    </h5>
+                    <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#agendaModal">
+                        <i class="fas fa-plus"></i> Nova
+                    </button>
+                </div>
+                
+                <!-- DEBUG INFO -->
+                <div style="background: #fff3cd; padding: 10px; margin: 10px; border-radius: 4px; border: 1px solid #ffc107;">
+                    <small><strong>DEBUG:</strong> visitas_hoje={{ visitas_hoje|length }}, proximas={{ proximas_visitas|length }}</small>
+                </div>
+                
+                <!-- Visitas de Hoje -->
+                <div class="list-group list-group-flush" style="padding: 15px;">
+                    <h6 style="color: #1976d2; margin: 0 0 15px 0;">🗓️ HOJE ({{ visitas_hoje|length }})</h6>
+                    {% if visitas_hoje %}
+                        {% for visita in visitas_hoje %}
+                            <div style="background: #e8f5e8; padding: 12px; margin: 8px 0; border-radius: 6px; border: 1px solid #28a745;">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <strong style="color: #155724;">{{ visita.cidadao.nome }}</strong>
+                                    <small style="color: #155724;">{{ visita.data_visita|date:"H:i" }}</small>
+                                </div>
+                                <p class="mb-1 small" style="color: #155724;">{{ visita.get_motivo_display }}</p>
+                                <span class="badge bg-success">{{ visita.get_status_display }}</span>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center p-3" style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px;">
+                            <i class="fas fa-calendar-check text-warning fa-2x mb-2"></i>
+                            <p class="text-muted small">Nenhuma visita agendada para hoje.</p>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Próximas Visitas -->
+                {% if proximas_visitas %}
+                    <div style="background: #e3f2fd; padding: 15px; border-top: 1px solid #ddd;">
+                        <h6 class="mb-2" style="color: #1976d2;">
+                            <i class="fas fa-calendar-plus me-2"></i>PRÓXIMAS VISITAS ({{ proximas_visitas|length }})
+                        </h6>
+                        {% for visita in proximas_visitas %}
+                            <div class="d-flex justify-content-between small mb-2" style="background: white; padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+                                <span style="font-weight: bold; color: #333;">{{ visita.cidadao.nome }}</span>
+                                <span class="text-muted">{{ visita.data_visita|date:"d/m H:i" }}</span>
+                            </div>
+                        {% endfor %}
+                        <div class="text-center mt-3">
+                            <button type="button" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-calendar"></i> Ver Calendário
+                            </button>
+                        </div>
+                    </div>
+                {% else %}
+                    <div style="background: #fff3cd; padding: 15px; margin: 10px; border-radius: 4px; border: 1px solid #ffc107;">
+                        <small class="text-muted">Nenhuma próxima visita agendada.</small>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-lg-4 agenda-container">
+            <div class="stat-card agenda-card">
+                <div class="card-header-custom d-flex justify-content-between align-items-center mb-3" style="display: block !important; visibility: visible !important; background: #ff0000 !important; color: white !important; padding: 15px !important; border: 2px solid #000000 !important;">
+                    <h1 class="mb-0" style="color: #ffffff !important; font-size: 24px !important; font-weight: bold !important; text-shadow: 2px 2px 4px #000000 !important;">
+                        <i class="fas fa-calendar-alt me-2"></i>� AGENDA DE VISITAS FORÇADA 🚨
+                        {% if visitas_hoje %}
+                            <span class="badge bg-light text-primary ms-2">{{ visitas_hoje|length }}</span>
+                        {% endif %}
+                    </h5>
+                    <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#agendaModal">
+                        <i class="fas fa-plus"></i> Nova
+                    </button>
+                </div>
+                <div class="agenda-content">
+                    <!-- DEBUG INFO -->
+                    <div class="debug-info">
+                        <small><strong>DEBUG:</strong> visitas_hoje={{ visitas_hoje|length }}, proximas={{ proximas_visitas|length }}</small>
+                    </div>
+                
+                <div class="list-group list-group-flush">
+                    <div style="padding: 10px; background: #e3f2fd;">
+                        <h6 style="color: #1976d2; margin: 0 0 10px 0;">🗓️ HOJE ({{ visitas_hoje|length }})</h6>
+                        {% if visitas_hoje %}
+                            {% for visita in visitas_hoje %}
+                                <div style="background: #c8e6c9; padding: 8px; margin: 5px 0; border-radius: 4px; border: 1px solid #4caf50;">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1" style="color: #2e7d32;">{{ visita.cidadao.nome }}</h6>
+                                        <small style="color: #1b5e20;">{{ visita.data_visita|date:"H:i" }}</small>
+                                    </div>
+                                    <p class="mb-1 small" style="color: #388e3c;">{{ visita.get_motivo_display }}</p>
+                                    <span class="badge bg-success">{{ visita.get_status_display }}</span>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center p-3" style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px;">
+                                <i class="fas fa-calendar-check text-warning fa-2x mb-2"></i>
+                                <p class="text-muted small">Nenhuma visita agendada para hoje.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Próximas Visitas -->
+                {% if proximas_visitas %}
+                    <div class="card-footer" style="background: #e8f5e8 !important; padding: 10px;">
+                        <h6 class="mb-2" style="color: #1976d2;"><i class="fas fa-calendar-plus me-2"></i>PRÓXIMAS VISITAS ({{ proximas_visitas|length }})</h6>
+                        {% for visita in proximas_visitas %}
+                            <div class="d-flex justify-content-between small mb-1" style="background: white; padding: 5px; border-radius: 3px; margin: 3px 0;">
+                                <span style="font-weight: bold; color: #333;">{{ visita.cidadao.nome }}</span>
+                                <span class="text-muted">{{ visita.data_visita|date:"d/m H:i" }}</span>
+                            </div>
+                        {% endfor %}
+                        <div class="text-center mt-2">
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="abrirCalendario()">
+                                <i class="fas fa-calendar"></i> Ver Calendário
+                            </button>
+                        </div>
+                    </div>
+                {% else %}
+                    <div style="background: #fff3cd; padding: 10px; margin: 5px; border-radius: 4px;">
+                        <small class="text-muted">Nenhuma próxima visita agendada.</small>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>

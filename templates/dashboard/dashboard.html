@@ -3,12 +3,15 @@
 {% block title %}Dashboard - Sistema de Saúde{% endblock %}
 
 {% block page_title %}
-    <span class="page-title">Dashboard Principal</span>
+    <!-- <span class="page-title">Dashboard Principal</span> -->
 {% endblock %}
 
 {% block page_actions %}
     <div class="btn-group" role="group">
-        <a href="{% url 'dashboard:coleta_dados' %}" class="btn btn-primary shadow-sm">
+        <a href="{% url 'dashboard:agenda' %}" class="btn btn-primary shadow-sm">
+            <i class="fas fa-calendar-alt me-2"></i>Ver Agenda
+        </a>
+        <a href="{% url 'dashboard:coleta_dados' %}" class="btn btn-secondary shadow-sm">
             <i class="fas fa-plus me-2"></i>Nova Coleta
         </a>
         <a href="{% url 'geolocation:mapa_risco' %}" class="btn btn-success shadow-sm">
@@ -39,7 +42,7 @@
                             Cidadãos Cadastrados
                         </div>
                         <div class="h5 mb-0 font-weight-bold text-gray-800">
-                            {{ stats.total_cidadaos|default:0 }}
+                            {{ stats.total_cidadaos_cadastrados|default:0 }}
                         </div>
                     </div>
                     <div class="col-auto">
@@ -59,7 +62,7 @@
                             Com Dados de Saúde
                         </div>
                         <div class="h5 mb-0 font-weight-bold text-gray-800">
-                            {{ stats.total_dados_saude|default:0 }}
+                            {{ stats.cidadaos_com_dados_saude|default:0 }}
                         </div>
                     </div>
                     <div class="col-auto">
@@ -76,14 +79,77 @@
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
                         <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                            Anamneses Pendentes
+                            Visitas Pendentes
                         </div>
                         <div class="h5 mb-0 font-weight-bold text-gray-800">
-                            {{ anamneses_pendentes.count|default:0 }}
+                            {{ stats.visitas_pendentes|default:0 }}
                         </div>
                     </div>
                     <div class="col-auto">
                         <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Anamneses Completas
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {{ stats.anamneses_completas|default:0 }}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Segunda linha de cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Total de Bairros
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {{ stats.total_bairros|default:0 }}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-map-marker-alt fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Visitas Realizadas
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {{ stats.visitas_realizadas|default:0 }}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calendar-check fa-2x text-gray-300"></i>
                     </div>
                 </div>
             </div>
@@ -96,14 +162,34 @@
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
                         <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-                            Alertas Urgentes
+                            Casos Alto Risco
                         </div>
                         <div class="h5 mb-0 font-weight-bold text-gray-800">
-                            {{ alertas_urgentes.count|default:0 }}
+                            {{ stats.casos_risco_alto_hoje|default:0 }}
                         </div>
                     </div>
                     <div class="col-auto">
                         <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-secondary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
+                            Total Anamneses
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {{ stats.total_anamneses|default:0 }}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
                     </div>
                 </div>
             </div>
@@ -181,6 +267,242 @@
 </div>
 {% endif %}
 
+<!-- Resumo de Atendimentos -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Visitas Realizadas
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {{ stats.visitas_realizadas|default:0 }}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Visitas Pendentes
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {{ stats.visitas_pendentes|default:0 }}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-clock fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Anamneses Completas
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {{ stats.anamneses_completas|default:0 }}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-file-medical fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-secondary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
+                            Total de Bairros
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {{ stats.total_bairros|default:0 }}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-map-marker-alt fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Indicadores de Saúde -->
+<div class="row mb-4">
+    <div class="col-xl-6 col-lg-6">
+        <div class="card shadow h-100">
+            <div class="card-header bg-danger text-white">
+                <h6 class="m-0 font-weight-bold">
+                    <i class="fas fa-exclamation-triangle me-2"></i>🚨 Indicadores de Risco
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <div class="text-center">
+                            <div class="h3 text-danger mb-1">{{ stats.casos_risco_alto_hoje|default:0 }}</div>
+                            <div class="text-xs text-uppercase">Alto Risco</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center">
+                            <div class="h3 text-warning mb-1">{{ stats.cidadaos_com_comorbidades|default:0 }}</div>
+                            <div class="text-xs text-uppercase">Com Comorbidades</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <div class="h4 text-info mb-1">{{ stats.total_anamneses_pendentes|default:0 }}</div>
+                    <div class="text-xs text-uppercase">Anamneses Pendentes</div>
+                </div>
+                
+                <!-- Minimapa de Risco -->
+                <div class="mt-3">
+                    <h6 class="text-center mb-2">Mapa de Risco - Visão Geral</h6>
+                    <div id="miniMapaRisco" style="height: 200px; border-radius: 8px;"></div>
+                </div>
+                
+                <div class="mt-3">
+                    <a href="{% url 'geolocation:mapa_risco' %}" class="btn btn-outline-danger btn-sm">
+                        <i class="fas fa-map-marked-alt me-1"></i>Ver Mapa Completo
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-6 col-lg-6">
+        <div class="card shadow h-100">
+            <div class="card-header bg-primary text-white">
+                <h6 class="m-0 font-weight-bold">
+                    <i class="fas fa-play-circle me-2"></i>📚 Treinamentos Disponíveis
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if treinamentos_recentes %}
+                    {% for treinamento in treinamentos_recentes %}
+                        <div class="mb-3 pb-2 border-bottom">
+                            <h6 class="text-primary mb-1">{{ treinamento.titulo|truncatechars:40 }}</h6>
+                            <small class="text-muted">{{ treinamento.categoria.nome }} • {{ treinamento.data_publicacao|date:"d/m/Y" }}</small>
+                            <div class="mt-2">
+                                <a href="{{ treinamento.url_video }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                                    <i class="fab fa-youtube me-1"></i>Assistir
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    <div class="text-center mt-3">
+                        <a href="{% url 'dashboard:treinamentos' %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-graduation-cap me-1"></i>Ver Todos os Treinamentos
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-video fa-2x mb-3"></i>
+                        <p>Nenhum treinamento disponível no momento</p>
+                        <a href="{% url 'dashboard:treinamentos' %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-plus me-1"></i>Adicionar Treinamentos
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alertas Recentes -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-warning text-dark">
+                <h6 class="m-0 font-weight-bold">
+                    <i class="fas fa-bell me-2"></i>🔔 Alertas Recentes - Cidadãos Alto Risco
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if alertas_recentes %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Bairro</th>
+                                    <th>Nível de Risco</th>
+                                    <th>Data</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for alerta in alertas_recentes %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ alerta.cidadao.nome }}</strong>
+                                            {% if alerta.cidadao.idade %}
+                                                <br><small class="text-muted">{{ alerta.cidadao.idade }} anos</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ alerta.cidadao.bairro|default:"Não informado" }}</td>
+                                        <td>
+                                            {% if alerta.nivel_risco == 'alto' %}
+                                                <span class="badge bg-danger">Alto Risco</span>
+                                            {% elif alerta.nivel_risco == 'critico' %}
+                                                <span class="badge bg-dark">Crítico</span>
+                                            {% else %}
+                                                <span class="badge bg-warning">Médio Risco</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ alerta.data_criacao|date:"d/m/Y H:i" }}</td>
+                                        <td>
+                                            <a href="{% url 'dashboard:cidadao_detalhes' alerta.cidadao.id %}" 
+                                               class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-eye me-1"></i>Detalhes
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center mt-3">
+                        <a href="{% url 'dashboard:alertas_list' %}" class="btn btn-warning">
+                            <i class="fas fa-list me-1"></i>Ver Todos os Alertas
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-check-circle fa-3x mb-3 text-success"></i>
+                        <h5>Nenhum alerta crítico no momento</h5>
+                        <p>Todos os cidadãos estão com níveis de risco controlados.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Casos de Alto Risco -->
 {% if casos_alto_risco_hoje %}
 <div class="row">
@@ -246,4 +568,132 @@
     </div>
 </div>
 {% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('📊 Dashboard carregada com informações de saúde');
+    
+    // Inicializar minimapa de risco
+    initMiniMapaRisco();
+    
+    // Atualizar estatísticas a cada 5 minutos
+    setInterval(function() {
+        // Recarregar apenas os números dos cards
+        fetch(window.location.href)
+            .then(response => response.text())
+            .then(html => {
+                // Parse do HTML retornado para extrair apenas os valores dos cards
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                // Atualizar cada card com novos valores
+                document.querySelectorAll('.h5.font-weight-bold.text-gray-800').forEach((element, index) => {
+                    const newElement = doc.querySelectorAll('.h5.font-weight-bold.text-gray-800')[index];
+                    if (newElement) {
+                        element.textContent = newElement.textContent;
+                    }
+                });
+                
+                console.log('📊 Estatísticas atualizadas automaticamente');
+            })
+            .catch(error => {
+                console.error('Erro ao atualizar estatísticas:', error);
+            });
+    }, 300000); // 5 minutos
+    
+    // Animar números dos cards na carga da página
+    document.querySelectorAll('.h5.font-weight-bold.text-gray-800').forEach(element => {
+        const finalValue = parseInt(element.textContent.replace(/\D/g, ''));
+        if (isNaN(finalValue) || finalValue === 0) return;
+        
+        const duration = 1500; // 1.5 segundos
+        const increment = finalValue / (duration / 50);
+        let currentValue = 0;
+        
+        element.textContent = '0';
+        
+        const timer = setInterval(() => {
+            currentValue += increment;
+            if (currentValue >= finalValue) {
+                element.textContent = finalValue.toLocaleString('pt-BR');
+                clearInterval(timer);
+            } else {
+                element.textContent = Math.floor(currentValue).toLocaleString('pt-BR');
+            }
+        }, 50);
+    });
+});
+
+function initMiniMapaRisco() {
+    // Verificar se o Leaflet está disponível
+    if (typeof L === 'undefined') {
+        console.error('Leaflet não está carregado');
+        document.getElementById('miniMapaRisco').innerHTML = 
+            '<div class="text-center p-4"><small class="text-muted">Mapa não disponível</small></div>';
+        return;
+    }
+    
+    try {
+        // Coordenadas padrão do Brasil (centro aproximado)
+        const lat = -15.77972;
+        const lng = -47.92972;
+        
+        // Inicializar mapa
+        const map = L.map('miniMapaRisco').setView([lat, lng], 6);
+        
+        // Adicionar camada do OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        
+        // Dados do mapa vindos do Django
+        const dadosRisco = {{ dados_mapa_risco|safe }};
+        
+        // Adicionar marcadores
+        if (dadosRisco && dadosRisco.length > 0) {
+            dadosRisco.forEach(function(ponto) {
+                const marker = L.circleMarker([ponto.lat, ponto.lng], {
+                    color: ponto.cor,
+                    fillColor: ponto.cor,
+                    fillOpacity: 0.6,
+                    radius: 6,
+                    weight: 2
+                });
+                
+                marker.bindPopup(`
+                    <strong>${ponto.cidadao}</strong><br>
+                    <small>${ponto.bairro}</small><br>
+                    <span class="badge" style="background-color: ${ponto.cor}; color: white;">
+                        ${ponto.risco.charAt(0).toUpperCase() + ponto.risco.slice(1)} Risco
+                    </span>
+                `);
+                
+                marker.addTo(map);
+            });
+            
+            // Ajustar zoom para mostrar todos os marcadores
+            const group = new L.featureGroup(map._layers);
+            if (Object.keys(group._layers).length > 0) {
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
+        } else {
+            // Mostrar mensagem quando não há dados
+            L.popup()
+                .setLatLng([lat, lng])
+                .setContent('<div class="text-center"><small>Nenhum dado de risco disponível</small></div>')
+                .openOn(map);
+        }
+        
+        console.log('🗺️ Minimapa de risco inicializado');
+        
+    } catch (error) {
+        console.error('Erro ao inicializar minimapa:', error);
+        document.getElementById('miniMapaRisco').innerHTML = 
+            '<div class="text-center p-4"><small class="text-muted">Erro ao carregar mapa</small></div>';
+    }
+}
+</script>
 {% endblock %}

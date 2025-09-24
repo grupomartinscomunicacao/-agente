@@ -220,7 +220,8 @@
 .brand-logo {
     height: 40px;
     width: auto;
-    filter: brightness(0) invert(1);
+    /* Removido o filtro para manter as cores originais */
+    /* filter: brightness(0) invert(1); */
 }
 
 .brand-logo-color {
@@ -232,6 +233,26 @@
     height: 60px;
     width: auto;
     filter: brightness(0) invert(1);
+}
+
+/* Navbar brand icon */
+.navbar-brand .fa-heartbeat {
+    font-size: 24px;
+    color: #fff;
+}
+
+/* Brand container */
+.navbar-brand {
+    display: flex;
+    align-items: center;
+}
+
+/* Minimapa de risco */
+#miniMapaRisco {
+    height: 200px;
+    border-radius: 8px;
+    border: 2px solid #dee2e6;
+    overflow: hidden;
 }
 
 /* Footer if exists */
@@ -260,4 +281,59 @@
 .brand-logo-color:hover {
     transform: scale(1.05);
     transition: transform 0.2s ease-in-out;
+}
+
+/* Estilo para leaflet popups */
+.leaflet-popup-content {
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+
+.leaflet-popup-content strong {
+    color: #5a5c69;
+}
+
+/* Cards da dashboard */
+.card-body .h5 {
+    animation: countUp 1.5s ease-out;
+}
+
+@keyframes countUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Badges dos alertas */
+.badge-danger {
+    background-color: #e74a3b;
+}
+
+.badge-warning {
+    background-color: #f39c12;
+}
+
+.badge-success {
+    background-color: #00bc8c;
+}
+
+/* Ícones nos cards */
+.card .text-xs i {
+    margin-right: 5px;
+}
+
+/* Hover effects nos cards */
+.card:hover {
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    transform: translateY(-2px);
+    transition: all 0.3s ease;
+}
+
+.card {
+    transition: all 0.3s ease;
 }

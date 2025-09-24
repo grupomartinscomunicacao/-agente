@@ -1,0 +1,369 @@
+/* 
+ * Google Agenda Style Calendar
+ * Estilização customizada para o FullCalendar no estilo Google Agenda
+ */
+
+/* ================================
+   CONFIGURAÇÕES GERAIS DO CALENDÁRIO
+   ================================ */
+
+#calendar {
+    /* Tamanho compacto */
+    max-height: 600px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e0e0e0;
+    overflow: hidden;
+}
+
+/* ================================
+   CABEÇALHO DO CALENDÁRIO
+   ================================ */
+
+.fc-header-toolbar {
+    background: #f8f9fa;
+    border-bottom: 1px solid #e8eaed;
+    padding: 12px 16px !important;
+    margin-bottom: 0 !important;
+}
+
+.fc-toolbar-title {
+    color: #3c4043;
+    font-size: 1.3rem !important;
+    font-weight: 500 !important;
+    margin: 0 !important;
+}
+
+/* Botões de navegação */
+.fc-button-group .fc-button {
+    background: #ffffff;
+    border: 1px solid #dadce0;
+    color: #3c4043;
+    font-size: 0.875rem;
+    padding: 6px 12px;
+    border-radius: 6px;
+    margin: 0 2px;
+    transition: all 0.2s ease;
+    box-shadow: none;
+}
+
+.fc-button-group .fc-button:hover {
+    background: #f1f3f4;
+    border-color: #dadce0;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.fc-button-group .fc-button:active,
+.fc-button-group .fc-button.fc-button-active {
+    background: #1a73e8;
+    border-color: #1a73e8;
+    color: white;
+}
+
+/* ================================
+   GRID E ESTRUTURA DA SEMANA
+   ================================ */
+
+.fc-timegrid {
+    border: none;
+}
+
+.fc-timegrid-col-bg {
+    background: #ffffff;
+}
+
+/* Cabeçalhos dos dias */
+.fc-col-header {
+    background: #f8f9fa;
+    border-bottom: 1px solid #e8eaed;
+}
+
+.fc-col-header-cell {
+    border-right: 1px solid #e8eaed;
+    padding: 8px 4px;
+}
+
+.fc-col-header-cell-cushion {
+    color: #5f6368;
+    font-weight: 500;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Destaque do dia atual */
+.fc-day-today .fc-col-header-cell-cushion {
+    color: #1a73e8;
+    font-weight: 600;
+}
+
+.fc-day-today .fc-timegrid-col-bg {
+    background: rgba(26, 115, 232, 0.04);
+}
+
+/* ================================
+   GRID DE HORÁRIOS
+   ================================ */
+
+.fc-timegrid-slot {
+    height: 40px;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.fc-timegrid-slot:nth-child(even) {
+    background: rgba(248, 249, 250, 0.3);
+}
+
+.fc-timegrid-axis {
+    border-right: 1px solid #e8eaed;
+    background: #fafbfc;
+    width: 60px;
+}
+
+.fc-timegrid-slot-label {
+    color: #5f6368;
+    font-size: 0.75rem;
+    font-weight: 400;
+    padding-right: 8px;
+}
+
+/* ================================
+   EVENTOS/VISITAS
+   ================================ */
+
+.fc-event {
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 4px 8px !important;
+    margin: 1px 2px !important;
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12) !important;
+}
+
+.fc-event:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+    z-index: 999 !important;
+}
+
+/* Cores dos eventos baseadas no status */
+.fc-event[data-status="agendada"] {
+    background: linear-gradient(135deg, #ffc107 0%, #ff8f00 100%) !important;
+    color: #ffffff !important;
+}
+
+.fc-event[data-status="confirmada"] {
+    background: linear-gradient(135deg, #17a2b8 0%, #007bff 100%) !important;
+    color: #ffffff !important;
+}
+
+.fc-event[data-status="realizada"] {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+    color: #ffffff !important;
+}
+
+.fc-event[data-status="cancelada"] {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%) !important;
+    color: #ffffff !important;
+}
+
+/* Conteúdo do evento */
+.fc-event-title {
+    font-weight: 600 !important;
+    line-height: 1.2 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+.fc-event-time {
+    font-weight: 400 !important;
+    opacity: 0.9 !important;
+    font-size: 0.7rem !important;
+}
+
+/* ================================
+   TOOLTIPS PERSONALIZADOS
+   ================================ */
+
+.evento-tooltip {
+    background: rgba(60, 64, 67, 0.95);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    max-width: 280px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+    z-index: 9999;
+}
+
+.evento-tooltip .tooltip-title {
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #ffffff;
+}
+
+.evento-tooltip .tooltip-info {
+    margin: 4px 0;
+    opacity: 0.9;
+}
+
+.evento-tooltip .tooltip-status {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-top: 6px;
+}
+
+/* ================================
+   RESPONSIVIDADE
+   ================================ */
+
+@media (max-width: 768px) {
+    #calendar {
+        max-height: 500px;
+        margin: 0;
+        border-radius: 8px;
+    }
+    
+    .fc-toolbar-title {
+        font-size: 1.1rem !important;
+    }
+    
+    .fc-button-group .fc-button {
+        padding: 4px 8px;
+        font-size: 0.75rem;
+    }
+    
+    .fc-timegrid-axis {
+        width: 45px;
+    }
+    
+    .fc-timegrid-slot-label {
+        font-size: 0.7rem;
+    }
+    
+    .fc-event {
+        font-size: 0.7rem !important;
+        padding: 2px 6px !important;
+    }
+}
+
+@media (max-width: 576px) {
+    #calendar {
+        max-height: 450px;
+    }
+    
+    .fc-header-toolbar {
+        padding: 8px 12px !important;
+    }
+    
+    .fc-toolbar-title {
+        font-size: 1rem !important;
+    }
+    
+    .fc-timegrid-axis {
+        width: 35px;
+    }
+    
+    .fc-timegrid-slot {
+        height: 35px;
+    }
+}
+
+/* ================================
+   ANIMAÇÕES E TRANSIÇÕES
+   ================================ */
+
+.fc-event {
+    animation: slideInEvent 0.3s ease-out;
+}
+
+@keyframes slideInEvent {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ================================
+   MELHORIAS NO CARREGAMENTO
+   ================================ */
+
+.fc-loading {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(2px);
+}
+
+.fc-loading::after {
+    content: "Carregando agenda...";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #1a73e8;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+}
+
+/* ================================
+   ÍCONES E AÇÕES NOS EVENTOS
+   ================================ */
+
+.event-actions {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    display: none;
+    gap: 2px;
+}
+
+.fc-event:hover .event-actions {
+    display: flex;
+}
+
+.event-action-btn {
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.6rem;
+}
+
+.event-action-btn:hover {
+    background: rgba(255, 255, 255, 1);
+    transform: scale(1.1);
+}
+
+.event-action-btn.edit-btn {
+    color: #1a73e8;
+}
+
+.event-action-btn.confirm-btn {
+    color: #34a853;
+}
+
+.event-action-btn.delete-btn {
+    color: #ea4335;
+}

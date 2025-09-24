@@ -1,20 +1,22 @@
 """
-Django settings for health_system project - Versão Simplificada.
+Django settings for health_system project - Configuração para Produção.
 """
 
 from pathlib import Path
 import os
+from decouple import config, Csv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-@pv-)fpnb+8_eum4-c$uu5(puil^j@j+1#w)s^+(ihled3i7-f"
+SECRET_KEY = config('SECRET_KEY', default="django-insecure-@pv-)fpnb+8_eum4-c$uu5(puil^j@j+1#w)s^+(ihled3i7-f")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver']
+# Allowed hosts from environment
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 
 # Application definition
 INSTALLED_APPS = [
@@ -132,8 +134,8 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 # OpenAI Assistant Configuration
-OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
-ASSISTANT_ID = os.environ.get('ASSISTANT_ID', '')
+OPENAI_API_KEY = config('OPENAI_API_KEY', default='')
+ASSISTANT_ID = config('ASSISTANT_ID', default='')
 
 # LGPD
 LGPD_SALT = 'health_system_lgpd_salt_2024'
@@ -147,3 +149,56 @@ os.makedirs(BASE_DIR / "staticfiles", exist_ok=True)
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/'  # Redireciona para a raiz que vai para dashboard
 LOGOUT_REDIRECT_URL = '/accounts/login/'
+
+# Configurações de Segurança para Produção
+if not DEBUG:
+    # Security settings for production
+    SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=31536000, cast=int)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = config('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=True, cast=bool)
+    SECURE_HSTS_PRELOAD = config('SECURE_HSTS_PRELOAD', default=True, cast=bool)
+    SECURE_CONTENT_TYPE_NOSNIFF = config('SECURE_CONTENT_TYPE_NOSNIFF', default=True, cast=bool)
+    SECURE_BROWSER_XSS_FILTER = config('SECURE_BROWSER_XSS_FILTER', default=True, cast=bool)
+    SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=False, cast=bool)
+    CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=False, cast=bool)
+    SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=False, cast=bool)
+
+# Logging configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'django.log',
+            'formatter': 'verbose',
+        },
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'health_system': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}

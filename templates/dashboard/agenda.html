@@ -1,0 +1,907 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Agenda de Visitas - Sistema de Saúde{% endblock %}
+
+{% block page_title %}
+    <span class="page-title">
+        <i class="fas fa-calendar-alt me-2"></i>📅 Agenda de Visitas
+    </span>
+{% endblock %}
+
+{% block page_actions %}
+    <div class="btn-group" role="group">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#novaVisitaModal">
+            <i class="fas fa-plus me-2"></i>Nova Visita
+        </button>
+        <a href="{% url 'dashboard:dashboard' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Voltar ao Dashboard
+        </a>
+    </div>
+{% endblock %}
+
+{% block content %}
+<!-- Calendário FullCalendar -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar me-2"></i>📅 Calendário de Visitas
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="calendar"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cards de Resumo -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-uppercase">Hoje</h6>
+                        <h2 class="mb-0">{{ visitas_hoje|length }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-calendar-day fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-uppercase">Próximas</h6>
+                        <h2 class="mb-0">{{ proximas_visitas|length }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-calendar-week fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-uppercase">Confirmadas</h6>
+                        <h2 class="mb-0">{{ visitas_confirmadas|length }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-check-circle fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-uppercase">Pendentes</h6>
+                        <h2 class="mb-0">{{ visitas_pendentes|length }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-clock fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Agenda Principal -->
+<div class="row">
+    <!-- Visitas de Hoje -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-day me-2"></i>🗓️ Visitas de Hoje
+                    <span class="badge bg-light text-primary ms-2">{{ visitas_hoje|length }}</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if visitas_hoje %}
+                    {% for visita in visitas_hoje %}
+                        <div class="alert alert-{{ visita.cor_status }} mb-3">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <h6 class="alert-heading mb-1">
+                                        <i class="fas fa-user me-1"></i>{{ visita.cidadao.nome }}
+                                    </h6>
+                                    <p class="mb-1">
+                                        <i class="fas fa-clipboard-list me-1"></i>
+                                        <strong>Motivo:</strong> {{ visita.get_motivo_display }}
+                                    </p>
+                                    {% if visita.observacoes %}
+                                        <p class="mb-1">
+                                            <i class="fas fa-comment me-1"></i>
+                                            <strong>Observações:</strong> {{ visita.observacoes|truncatewords:10 }}
+                                        </p>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <div class="mb-2">
+                                        <i class="fas fa-clock me-1"></i>
+                                        <strong>{{ visita.data_visita|date:"H:i" }}</strong>
+                                    </div>
+                                    <div class="mb-2">
+                                        <span class="badge bg-{{ visita.cor_status }}">
+                                            {{ visita.get_status_display }}
+                                        </span>
+                                    </div>
+                                    <div class="btn-group-sm">
+                                        <button class="btn btn-sm btn-outline-primary btn-editar-visita" 
+                                                data-visita-id="{{ visita.id }}"
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#editarVisitaModal"
+                                                title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        {% if visita.status != 'realizada' %}
+                                            <button class="btn btn-sm btn-outline-success btn-confirmar-visita" 
+                                                    data-visita-id="{{ visita.id }}"
+                                                    title="Marcar como realizada">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        {% endif %}
+                                        {% if visita.pode_ser_cancelada %}
+                                            <button class="btn btn-sm btn-outline-danger btn-cancelar-visita" 
+                                                    data-visita-id="{{ visita.id }}"
+                                                    title="Cancelar">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-calendar-check text-muted fa-3x mb-3"></i>
+                        <h5 class="text-muted">Nenhuma visita agendada para hoje</h5>
+                        <p class="text-muted">Que tal agendar uma nova visita?</p>
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#novaVisitaModal">
+                            <i class="fas fa-plus me-2"></i>Nova Visita
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Próximas Visitas -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-week me-2"></i>📅 Próximas Visitas
+                    <span class="badge bg-light text-info ms-2">{{ proximas_visitas|length }}</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if proximas_visitas %}
+                    {% for visita in proximas_visitas %}
+                        <div class="d-flex justify-content-between align-items-center border-bottom py-3">
+                            <div>
+                                <h6 class="mb-1">
+                                    <i class="fas fa-user me-1"></i>{{ visita.cidadao.nome }}
+                                </h6>
+                                <small class="text-muted">
+                                    <i class="fas fa-clipboard-list me-1"></i>{{ visita.get_motivo_display }}
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold text-primary">
+                                    <i class="fas fa-calendar me-1"></i>{{ visita.data_visita|date:"d/m" }}
+                                </div>
+                                <div class="fw-bold text-info">
+                                    <i class="fas fa-clock me-1"></i>{{ visita.data_visita|date:"H:i" }}
+                                </div>
+                                <span class="badge bg-{{ visita.cor_status }} mt-1">
+                                    {{ visita.get_status_display }}
+                                </span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    
+                    <div class="text-center mt-3">
+                        <button class="btn btn-outline-info">
+                            <i class="fas fa-calendar me-2"></i>Ver Calendário Completo
+                        </button>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-calendar-plus text-muted fa-3x mb-3"></i>
+                        <h5 class="text-muted">Nenhuma visita futura agendada</h5>
+                        <p class="text-muted">Planeje suas próximas visitas</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Visita -->
+<div class="modal fade" id="editarVisitaModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>Editar Visita
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" title="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editarVisitaForm" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" id="editarVisitaId" name="visita_id">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cidadão</label>
+                            <select class="form-select" id="editarCidadao" name="cidadao" required>
+                                {% for cidadao in cidadaos %}
+                                    <option value="{{ cidadao.id }}">{{ cidadao.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Data e Hora</label>
+                            <input type="datetime-local" class="form-control" id="editarDataVisita" name="data_visita" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Motivo</label>
+                            <select class="form-select" id="editarMotivo" name="motivo" required>
+                                <option value="consulta">Consulta de Rotina</option>
+                                <option value="acompanhamento">Acompanhamento</option>
+                                <option value="emergencia">Emergência</option>
+                                <option value="preventivo">Preventivo</option>
+                                <option value="outros">Outros</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" id="editarStatus" name="status">
+                                <option value="agendada">Agendada</option>
+                                <option value="confirmada">Confirmada</option>
+                                <option value="realizada">Realizada</option>
+                                <option value="cancelada">Cancelada</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Observações</label>
+                        <textarea class="form-control" id="editarObservacoes" name="observacoes" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" form="editarVisitaForm" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>Salvar Alterações
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nova Visita -->
+<div class="modal fade" id="novaVisitaModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-calendar-plus me-2"></i>Nova Visita
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" title="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <form id="novaVisitaForm" method="post">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">{{ form_nova_visita.cidadao.label }}</label>
+                            {{ form_nova_visita.cidadao }}
+                            {% if form_nova_visita.cidadao.help_text %}
+                                <div class="form-text">{{ form_nova_visita.cidadao.help_text }}</div>
+                            {% endif %}
+                            {% for error in form_nova_visita.cidadao.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">{{ form_nova_visita.data_visita.label }}</label>
+                            {{ form_nova_visita.data_visita }}
+                            {% if form_nova_visita.data_visita.help_text %}
+                                <div class="form-text">{{ form_nova_visita.data_visita.help_text }}</div>
+                            {% endif %}
+                            {% for error in form_nova_visita.data_visita.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">{{ form_nova_visita.motivo.label }}</label>
+                            {{ form_nova_visita.motivo }}
+                            {% if form_nova_visita.motivo.help_text %}
+                                <div class="form-text">{{ form_nova_visita.motivo.help_text }}</div>
+                            {% endif %}
+                            {% for error in form_nova_visita.motivo.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">{{ form_nova_visita.duracao_minutos.label }}</label>
+                            {{ form_nova_visita.duracao_minutos }}
+                            {% if form_nova_visita.duracao_minutos.help_text %}
+                                <div class="form-text">{{ form_nova_visita.duracao_minutos.help_text }}</div>
+                            {% endif %}
+                            {% for error in form_nova_visita.duracao_minutos.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ form_nova_visita.observacoes.label }}</label>
+                        {{ form_nova_visita.observacoes }}
+                        {% if form_nova_visita.observacoes.help_text %}
+                            <div class="form-text">{{ form_nova_visita.observacoes.help_text }}</div>
+                        {% endif %}
+                        {% for error in form_nova_visita.observacoes.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    <div class="form-check">
+                        {{ form_nova_visita.lembrete_agente }}
+                        <label class="form-check-label" for="{{ form_nova_visita.lembrete_agente.auto_id }}">
+                            {{ form_nova_visita.lembrete_agente.label }}
+                        </label>
+                        {% if form_nova_visita.lembrete_agente.help_text %}
+                            <div class="form-text">{{ form_nova_visita.lembrete_agente.help_text }}</div>
+                        {% endif %}
+                        {% for error in form_nova_visita.lembrete_agente.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" form="novaVisitaForm" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>Agendar Visita
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Verificar se FullCalendar está disponível
+    console.log('🔍 Verificando FullCalendar...');
+    console.log('FullCalendar disponível:', typeof FullCalendar !== 'undefined');
+    
+    if (typeof FullCalendar === 'undefined') {
+        console.error('❌ FullCalendar não está disponível!');
+        document.getElementById('calendar').innerHTML = '<div class="alert alert-danger">Erro: FullCalendar não carregou. Verifique a conexão com a internet.</div>';
+        return;
+    }
+    
+    console.log('✅ FullCalendar carregado com sucesso');
+    
+    // Inicializar FullCalendar
+    var calendarEl = document.getElementById('calendar');
+    
+    if (!calendarEl) {
+        console.error('❌ Elemento #calendar não encontrado!');
+        return;
+    }
+    
+    console.log('🔄 Inicializando calendário...');
+    
+    try {
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            // Configuração básica
+            locale: 'pt-br',
+            initialView: 'timeGridWeek', // Modo semanal por padrão
+            
+            // Textos personalizados em português
+            buttonText: {
+                today: 'Hoje',
+                month: 'Mês',
+                week: 'Semana',
+                day: 'Dia'
+            },
+            
+            // Cabeçalho estilo Google Agenda
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'timeGridWeek,timeGridDay,dayGridMonth'
+            },
+            
+            // Configurações de tempo
+            slotMinTime: '06:00:00',
+            slotMaxTime: '20:00:00',
+            slotDuration: '00:30:00',
+            slotLabelInterval: '01:00:00',
+            slotLabelFormat: {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            },
+            
+            // Altura e responsividade
+            height: 'auto',
+            aspectRatio: 1.8,
+            
+            // Configurações de eventos
+            events: '{% url "dashboard:agenda_eventos_api" %}',
+            eventDisplay: 'block',
+            eventMinHeight: 25,
+            
+            // Interações
+            selectable: true,
+            selectMirror: true,
+            dayMaxEvents: false,
+            
+            // Horário de trabalho
+            businessHours: {
+                daysOfWeek: [1, 2, 3, 4, 5], // Segunda a sexta
+                startTime: '08:00',
+                endTime: '17:00'
+            },
+            
+            // Event handlers
+            eventClick: function(info) {
+                console.log('🖱️ Evento clicado:', info.event.id);
+                criarTooltipEvento(info.event, info.jsEvent);
+                setTimeout(() => {
+                    abrirModalEdicao(info.event.id);
+                }, 200);
+            },
+            
+            select: function(info) {
+                console.log('📅 Período selecionado:', info.startStr, 'até', info.endStr);
+                // Abrir modal para nova visita com horário selecionado
+                var dataInput = document.querySelector('input[name="data_visita"]');
+                if (dataInput) {
+                    const startDate = new Date(info.start);
+                    startDate.setMinutes(startDate.getMinutes() - startDate.getTimezoneOffset());
+                    dataInput.value = startDate.toISOString().slice(0, 16);
+                    var modal = new bootstrap.Modal(document.getElementById('novaVisitaModal'));
+                    modal.show();
+                }
+                calendar.unselect();
+            },
+            
+            eventDidMount: function(info) {
+                // Adicionar atributos de dados para CSS
+                const status = info.event.extendedProps.status_codigo || 'agendada';
+                info.el.setAttribute('data-status', status);
+                
+                // Configurar conteúdo do evento
+                const titleEl = info.el.querySelector('.fc-event-title');
+                const timeEl = info.el.querySelector('.fc-event-time');
+                
+                if (titleEl) {
+                    titleEl.innerHTML = info.event.extendedProps.cidadao_nome || info.event.title;
+                }
+                
+                // Adicionar ícones de ação
+                setTimeout(() => adicionarIconesAcao(info.el, info.event), 100);
+            },
+            
+            eventMouseEnter: function(info) {
+                // Efeito hover suave
+                info.el.style.zIndex = '999';
+                info.el.style.transform = 'translateY(-2px)';
+            },
+            
+            eventMouseLeave: function(info) {
+                // Remover efeito hover
+                info.el.style.zIndex = 'auto';
+                info.el.style.transform = 'translateY(0px)';
+            }
+        });
+        
+        calendar.render();
+        console.log('✅ Calendário renderizado com sucesso!');
+        
+    } catch (error) {
+        console.error('❌ Erro ao inicializar calendário:', error);
+        document.getElementById('calendar').innerHTML = '<div class="alert alert-danger">Erro ao carregar calendário: ' + error.message + '</div>';
+        return;
+    }
+    
+    // Configurar data mínima para hoje
+    const dataInput = document.querySelector('input[name="data_visita"]');
+    if (dataInput) {
+        const agora = new Date();
+        agora.setMinutes(agora.getMinutes() - agora.getTimezoneOffset());
+        dataInput.min = agora.toISOString().slice(0, 16);
+    }    // Form de nova visita
+    document.getElementById('novaVisitaForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        
+        fetch('{% url "dashboard:agenda" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Fechar modal
+                var modal = bootstrap.Modal.getInstance(document.getElementById('novaVisitaModal'));
+                modal.hide();
+                
+                // Recarregar calendário
+                calendar.refetchEvents();
+                
+                // Mostrar mensagem de sucesso
+                mostrarAlerta('success', 'Visita agendada com sucesso!');
+                
+                // Recarregar página para atualizar cards
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                mostrarAlerta('error', 'Erro ao agendar visita: ' + (data.error || 'Erro desconhecido'));
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            mostrarAlerta('error', 'Erro ao agendar visita');
+        });
+    });
+    
+    // Botões de confirmar visita
+    console.log('🔄 Configurando botões de confirmar visita...');
+    const botoesConfirmar = document.querySelectorAll('.btn-confirmar-visita');
+    console.log('📊 Botões encontrados:', botoesConfirmar.length);
+    
+    document.querySelectorAll('.btn-confirmar-visita').forEach(button => {
+        button.addEventListener('click', function() {
+            const visitaId = this.dataset.visitaId;
+            console.log('🎯 Confirmando visita ID:', visitaId);
+            
+            if (confirm('Tem certeza que deseja marcar esta visita como realizada?')) {
+                confirmarVisita(visitaId);
+            }
+        });
+    });
+    
+    // Botões de editar visita
+    document.querySelectorAll('.btn-editar-visita').forEach(button => {
+        button.addEventListener('click', function() {
+            const visitaId = this.dataset.visitaId;
+            abrirModalEdicao(visitaId);
+        });
+    });
+    
+    // Botões de cancelar visita
+    document.querySelectorAll('.btn-cancelar-visita').forEach(button => {
+        button.addEventListener('click', function() {
+            const visitaId = this.dataset.visitaId;
+            
+            if (confirm('Tem certeza que deseja cancelar esta visita?')) {
+                cancelarVisita(visitaId);
+            }
+        });
+    });
+    
+    // Form de editar visita
+    document.getElementById('editarVisitaForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const visitaId = document.getElementById('editarVisitaId').value;
+        const formData = new FormData(this);
+        
+        fetch(`/api/agenda/editar/${visitaId}/`, {
+            method: 'PUT',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Fechar modal
+                var modal = bootstrap.Modal.getInstance(document.getElementById('editarVisitaModal'));
+                modal.hide();
+                
+                // Recarregar calendário
+                calendar.refetchEvents();
+                
+                // Mostrar mensagem de sucesso
+                mostrarAlerta('success', 'Visita atualizada com sucesso!');
+                
+                // Recarregar página
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                mostrarAlerta('error', 'Erro ao atualizar visita: ' + (data.error || 'Erro desconhecido'));
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            mostrarAlerta('error', 'Erro ao atualizar visita');
+        });
+    });
+    
+    // Funções auxiliares
+    function confirmarVisita(visitaId) {
+        console.log('📡 Enviando requisição para confirmar visita:', visitaId);
+        
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (!csrfToken) {
+            console.error('❌ Token CSRF não encontrado!');
+            mostrarAlerta('error', 'Erro: Token de segurança não encontrado');
+            return;
+        }
+        
+        fetch(`/api/agenda/confirmar/${visitaId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken.value,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            console.log('📡 Resposta recebida:', response.status, response.statusText);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('✅ Dados recebidos:', data);
+            if (data.success) {
+                mostrarAlerta('success', data.message);
+                if (typeof calendar !== 'undefined') {
+                    calendar.refetchEvents();
+                }
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                mostrarAlerta('error', 'Erro ao confirmar visita: ' + (data.error || 'Erro desconhecido'));
+            }
+        })
+        .catch(error => {
+            console.error('❌ Erro na requisição:', error);
+            mostrarAlerta('error', 'Erro ao confirmar visita: ' + error.message);
+        });
+    }
+    
+    function cancelarVisita(visitaId) {
+        fetch(`/api/agenda/excluir/${visitaId}/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                mostrarAlerta('success', data.message);
+                calendar.refetchEvents();
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                mostrarAlerta('error', 'Erro ao cancelar visita: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            mostrarAlerta('error', 'Erro ao cancelar visita');
+        });
+    }
+    
+    function abrirModalEdicao(visitaId) {
+        // Buscar dados da visita e popular modal
+        fetch(`/api/agenda/eventos/?visita_id=${visitaId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.length > 0) {
+                const visita = data[0];
+                document.getElementById('editarVisitaId').value = visita.id;
+                document.getElementById('editarCidadao').value = visita.extendedProps.cidadao_id;
+                document.getElementById('editarDataVisita').value = visita.start.slice(0, 16);
+                document.getElementById('editarMotivo').value = visita.extendedProps.motivo_codigo;
+                document.getElementById('editarStatus').value = visita.extendedProps.status_codigo;
+                document.getElementById('editarObservacoes').value = visita.extendedProps.observacoes || '';
+                
+                // Abrir modal
+                var modal = new bootstrap.Modal(document.getElementById('editarVisitaModal'));
+                modal.show();
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar dados da visita:', error);
+            mostrarAlerta('error', 'Erro ao carregar dados da visita');
+        });
+    }
+    
+    // Funções do estilo Google Agenda
+    function criarTooltipEvento(info) {
+        const tooltip = document.createElement('div');
+        tooltip.className = 'google-tooltip';
+        tooltip.innerHTML = `
+            <div class="tooltip-header">
+                <strong>${info.event.title}</strong>
+            </div>
+            <div class="tooltip-body">
+                <div><i class="fas fa-clock"></i> ${info.event.start.toLocaleString('pt-BR')}</div>
+                <div><i class="fas fa-user"></i> ${info.event.extendedProps.cidadao_nome}</div>
+                <div><i class="fas fa-stethoscope"></i> ${info.event.extendedProps.motivo}</div>
+                ${info.event.extendedProps.observacoes ? 
+                    `<div><i class="fas fa-comment"></i> ${info.event.extendedProps.observacoes}</div>` : 
+                    ''
+                }
+            </div>
+        `;
+        
+        document.body.appendChild(tooltip);
+        return tooltip;
+    }
+    
+    function adicionarIconesAcao(element, event) {
+        // Verificar se já existem ícones
+        if (element.querySelector('.event-actions')) return;
+        
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'event-actions';
+        actionsDiv.innerHTML = `
+            <span class="action-icon edit-icon" title="Editar">
+                <i class="fas fa-edit"></i>
+            </span>
+            ${event.extendedProps.status_codigo !== 'realizada' ? 
+                `<span class="action-icon confirm-icon" title="Confirmar">
+                    <i class="fas fa-check"></i>
+                </span>` : 
+                `<span class="action-icon completed-icon" title="Realizada">
+                    <i class="fas fa-check-circle"></i>
+                </span>`
+            }
+            <span class="action-icon delete-icon" title="Cancelar">
+                <i class="fas fa-times"></i>
+            </span>
+        `;
+        
+        element.appendChild(actionsDiv);
+        
+        // Adicionar event listeners
+        const editIcon = actionsDiv.querySelector('.edit-icon');
+        const confirmIcon = actionsDiv.querySelector('.confirm-icon');
+        const deleteIcon = actionsDiv.querySelector('.delete-icon');
+        
+        if (editIcon) {
+            editIcon.addEventListener('click', (e) => {
+                e.stopPropagation();
+                abrirModalEdicao(event.id);
+            });
+        }
+        
+        if (confirmIcon) {
+            confirmIcon.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (confirm('Confirmar que a visita foi realizada?')) {
+                    confirmarVisita(event.id);
+                }
+            });
+        }
+        
+        if (deleteIcon) {
+            deleteIcon.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (confirm('Cancelar esta visita?')) {
+                    cancelarVisita(event.id);
+                }
+            });
+        }
+    }
+    
+    function configurarTooltipHover() {
+        let currentTooltip = null;
+        let tooltipTimeout = null;
+        
+        // Adicionar evento de hover para todos os eventos
+        document.addEventListener('mouseenter', function(e) {
+            if (e.target.closest('.fc-event')) {
+                const eventElement = e.target.closest('.fc-event');
+                
+                // Cancelar timeout anterior
+                if (tooltipTimeout) {
+                    clearTimeout(tooltipTimeout);
+                }
+                
+                tooltipTimeout = setTimeout(() => {
+                    // Remover tooltip anterior
+                    if (currentTooltip) {
+                        currentTooltip.remove();
+                    }
+                    
+                    // Buscar dados do evento
+                    const eventId = eventElement.querySelector('.fc-event-title')?.textContent;
+                    if (eventId && calendar) {
+                        const event = calendar.getEvents().find(e => e.title === eventId);
+                        if (event) {
+                            currentTooltip = criarTooltipEvento({ event });
+                            
+                            // Posicionar tooltip
+                            const rect = eventElement.getBoundingClientRect();
+                            currentTooltip.style.left = `${rect.right + 10}px`;
+                            currentTooltip.style.top = `${rect.top}px`;
+                        }
+                    }
+                }, 500);
+            }
+        }, true);
+        
+        document.addEventListener('mouseleave', function(e) {
+            if (e.target.closest('.fc-event')) {
+                if (tooltipTimeout) {
+                    clearTimeout(tooltipTimeout);
+                }
+                
+                setTimeout(() => {
+                    if (currentTooltip && !currentTooltip.matches(':hover')) {
+                        currentTooltip.remove();
+                        currentTooltip = null;
+                    }
+                }, 100);
+            }
+        }, true);
+    }
+
+    function mostrarAlerta(tipo, mensagem) {
+        // Criar alerta bootstrap dinamicamente
+        const alertDiv = document.createElement('div');
+        const corClasse = tipo === 'success' ? 'alert-success' : 'alert-danger';
+        
+        alertDiv.innerHTML = `
+            <div class="alert ${corClasse} alert-dismissible fade show position-fixed" 
+                 style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;" role="alert">
+                ${mensagem}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        
+        document.body.appendChild(alertDiv);
+        
+        // Remover após 5 segundos
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.parentNode.removeChild(alertDiv);
+            }
+        }, 5000);
+    }
+});
+</script>
+{% endblock %}

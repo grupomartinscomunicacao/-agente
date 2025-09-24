@@ -1,0 +1,126 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Dashboard - Sistema de Saúde{% endblock %}
+
+{% block page_title %}
+    <span class="page-title">Dashboard Principal</span>
+{% endblock %}
+
+{% block content %}
+    <!-- Teste da Agenda -->
+    <div class="row">
+        <div class="col-12">
+            <h2>TESTE DA AGENDA</h2>
+            
+            <div class="alert alert-info">
+                <h4>Debug: Visitas Hoje</h4>
+                <p>Quantidade: {{ visitas_hoje|length }}</p>
+                {% for visita in visitas_hoje %}
+                    <p>- {{ visita.cidadao.nome }} - {{ visita.data_visita|date:"H:i" }}</p>
+                {% empty %}
+                    <p>Nenhuma visita para hoje</p>
+                {% endfor %}
+            </div>
+            
+            <div class="alert alert-warning">
+                <h4>Debug: Próximas Visitas</h4>
+                <p>Quantidade: {{ proximas_visitas|length }}</p>
+                {% for visita in proximas_visitas %}
+                    <p>- {{ visita.cidadao.nome }} - {{ visita.data_visita|date:"d/m H:i" }}</p>
+                {% empty %}
+                    <p>Nenhuma próxima visita</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Template Original -->
+    <div class="row">
+        <!-- Alertas Urgentes -->
+        <div class="col-lg-4">
+            <div class="stat-card">
+                <div class="card-header-custom d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-circle text-danger me-2"></i>Alertas Urgentes
+                    </h5>
+                </div>
+                <div class="list-group list-group-flush">
+                    <div class="text-center p-3">
+                        <i class="fas fa-check-circle text-success fa-2x mb-2"></i>
+                        <p class="text-muted small">Nenhum alerta urgente.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Anamneses Pendentes -->
+        <div class="col-lg-4">
+            <div class="stat-card">
+                <div class="card-header-custom d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">
+                        <i class="fas fa-hourglass-half text-warning me-2"></i>Pendentes
+                    </h5>
+                </div>
+                <div class="list-group list-group-flush">
+                    <div class="text-center p-3">
+                        <i class="fas fa-check-circle text-success fa-2x mb-2"></i>
+                        <p class="text-muted small">Nenhuma anamnese pendente.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Agenda de Visitas -->
+        <div class="col-lg-4">
+            <div class="stat-card">
+                <div class="card-header-custom d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt text-primary me-2"></i>Visitas Hoje
+                        {% if visitas_hoje %}
+                            <span class="badge bg-primary ms-2">{{ visitas_hoje|length }}</span>
+                        {% endif %}
+                    </h5>
+                    <button type="button" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus"></i> Nova
+                    </button>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% if visitas_hoje %}
+                        {% for visita in visitas_hoje %}
+                            <div class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ visita.cidadao.nome }}</h6>
+                                    <small>{{ visita.data_visita|date:"H:i" }}</small>
+                                </div>
+                                <p class="mb-1 small">{{ visita.get_motivo_display }}</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="badge bg-primary">
+                                        {{ visita.get_status_display }}
+                                    </small>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center p-3">
+                            <i class="fas fa-calendar-check text-success fa-2x mb-2"></i>
+                            <p class="text-muted small">Nenhuma visita agendada para hoje.</p>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Próximas Visitas -->
+                {% if proximas_visitas %}
+                    <div class="card-footer bg-light">
+                        <h6 class="mb-2"><i class="fas fa-calendar-plus text-info me-2"></i>Próximas Visitas</h6>
+                        {% for visita in proximas_visitas %}
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span>{{ visita.cidadao.nome }}</span>
+                                <span class="text-muted">{{ visita.data_visita|date:"d/m H:i" }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

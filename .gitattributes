@@ -1,0 +1,43 @@
+# Git Line Endings Configuration
+# Ensure consistent line endings across platforms
+
+# Text files should be normalized and converted to native line endings on checkout
+* text=auto
+
+# Shell scripts should always use LF
+*.sh text eol=lf
+
+# Python files should use LF
+*.py text eol=lf
+
+# Configuration files should use LF
+*.conf text eol=lf
+*.config text eol=lf
+*.service text eol=lf
+*.socket text eol=lf
+
+# Web files should use LF
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+
+# Documentation files
+*.md text eol=lf
+*.txt text eol=lf
+
+# Environment files
+.env* text eol=lf
+
+# Procfile
+Procfile text eol=lf
+
+# Binary files should not be processed
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.sqlite3 binary

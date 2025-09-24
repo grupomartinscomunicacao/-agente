@@ -1,0 +1,404 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Treinamentos - Sistema de Saúde{% endblock %}
+
+{% block page_title %}
+    <span class="page-title">
+        <i class="fas fa-play-circle me-2"></i>📚 Treinamentos para Agentes
+    </span>
+{% endblock %}
+
+{% block page_actions %}
+    <div class="btn-group" role="group">
+        <a href="{% url 'dashboard:dashboard' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Voltar ao Dashboard
+        </a>
+    </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .video-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        height: 100%;
+    }
+    
+    .video-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .video-iframe {
+        width: 100%;
+        height: 300px; /* Aumentado de 250px para 300px */
+        border-radius: 8px 8px 0 0;
+    }
+    
+    .video-info {
+        padding: 1.5rem;
+    }
+    
+    .video-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 0.8rem;
+        line-height: 1.4;
+    }
+    
+    .video-description {
+        color: #6c757d;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        margin-bottom: 1rem;
+    }
+    
+    .video-meta {
+        font-size: 0.8rem;
+        color: #8e9aaf;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: auto;
+        padding-top: 1rem;
+        border-top: 1px solid #eee;
+    }
+    
+    .stats-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+    }
+    
+    .category-section {
+        border-left: 4px solid #007bff;
+        padding-left: 20px;
+        margin-left: 10px;
+        background: rgba(0, 123, 255, 0.02);
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+    }
+    
+    .category-section h4 {
+        color: #007bff;
+        font-weight: 600;
+    }
+    
+    .btn-group .btn {
+        margin: 2px;
+        border-radius: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-group .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    .no-trainings {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #6c757d;
+    }
+    
+    .no-trainings i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Filtro por Categoria -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-filter me-2"></i>Filtrar por Categoria
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="btn-group flex-wrap" role="group" aria-label="Filtro de categorias">
+                    <!-- Botão "Todas as Categorias" -->
+                    <a href="{% url 'dashboard:treinamentos' %}" 
+                       class="btn {% if not categoria_selecionada %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                        <i class="fas fa-th-large me-1"></i>Todas as Categorias
+                        <span class="badge bg-light text-dark ms-2">{{ total_treinamentos }}</span>
+                    </a>
+                    
+                    <!-- Botões para cada categoria -->
+                    {% for categoria in todas_categorias %}
+                        <a href="{% url 'dashboard:treinamentos' %}?categoria={{ categoria.id }}" 
+                           class="btn {% if categoria_selecionada and categoria.id == categoria_selecionada.id %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                            <i class="fas fa-folder me-1"></i>{{ categoria.nome }}
+                            <span class="badge bg-light text-dark ms-2">{{ categoria.total_treinamentos }}</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estatísticas Resumidas -->
+<div class="row mb-4">
+    <div class="col-md-6 col-lg-4">
+        <div class="card stats-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-uppercase opacity-75">Total de Vídeos</h6>
+                        <h2 class="mb-0">{{ total_treinamentos }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-video fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-4">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-uppercase opacity-75">Categorias</h6>
+                        <h2 class="mb-0">{{ total_categorias }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-folder fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-4">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-uppercase opacity-75">
+                            {% if categoria_selecionada %}
+                                {{ categoria_selecionada.nome }}
+                            {% else %}
+                                Disponíveis
+                            {% endif %}
+                        </h6>
+                        <h2 class="mb-0">{{ total_treinamentos }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-check-circle fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Treinamentos Organizados por Categoria -->
+{% if treinamentos_por_categoria %}
+    {% for categoria_id, categoria_data in treinamentos_por_categoria.items %}
+        <div class="category-section mb-5">
+            <!-- Cabeçalho da Categoria -->
+            <div class="d-flex align-items-center mb-3">
+                <i class="fas fa-folder-open text-primary me-2"></i>
+                <h4 class="mb-0">{{ categoria_data.categoria.nome }}</h4>
+                <span class="badge bg-primary ms-2">{{ categoria_data.total }} vídeo{{ categoria_data.total|pluralize }}</span>
+                
+                {% if categoria_data.categoria.descricao %}
+                    <button class="btn btn-sm btn-outline-info ms-3" 
+                            data-bs-toggle="tooltip" 
+                            title="{{ categoria_data.categoria.descricao }}">
+                        <i class="fas fa-info-circle"></i>
+                    </button>
+                {% endif %}
+            </div>
+            
+            {% if categoria_data.categoria.descricao %}
+                <div class="alert alert-info mb-3">
+                    <small><i class="fas fa-info-circle me-1"></i>{{ categoria_data.categoria.descricao }}</small>
+                </div>
+            {% endif %}
+            
+            <!-- Vídeos da Categoria -->
+            <div class="row">
+                {% for treinamento in categoria_data.treinamentos %}
+                    <div class="col-lg-6 col-xl-4 mb-4">
+                        <div class="card video-card shadow-sm h-100">
+                            <!-- Embed do YouTube -->
+                            {% if treinamento.get_embed_url %}
+                                <iframe 
+                                    class="video-iframe" 
+                                    src="{{ treinamento.get_embed_url }}"
+                                    title="{{ treinamento.titulo }}"
+                                    frameborder="0" 
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                    allowfullscreen>
+                                </iframe>
+                            {% else %}
+                                <div class="video-iframe bg-light d-flex align-items-center justify-content-center">
+                                    <div class="text-center text-muted">
+                                        <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                                        <p>Vídeo não disponível</p>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            
+                            <!-- Informações do Vídeo -->
+                            <div class="video-info d-flex flex-column h-100">
+                                <h5 class="video-title">{{ treinamento.titulo }}</h5>
+                                
+                                <p class="video-description">
+                                    {{ treinamento.descricao|truncatewords:25 }}
+                                </p>
+                                
+                                <!-- Categoria Badge -->
+                                <div class="mb-2">
+                                    <span class="badge bg-secondary">{{ categoria_data.categoria.nome }}</span>
+                                </div>
+                                
+                                <!-- Ações do Vídeo -->
+                                <div class="mb-3">
+                                    <a href="{{ treinamento.url_video }}" 
+                                       target="_blank" 
+                                       class="btn btn-primary btn-sm me-2">
+                                        <i class="fab fa-youtube me-1"></i>Ver no YouTube
+                                    </a>
+                                    
+                                    <button class="btn btn-outline-secondary btn-sm" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#modalInfo{{ categoria_id }}{{ forloop.counter }}">
+                                        <i class="fas fa-info-circle me-1"></i>Mais Info
+                                    </button>
+                                </div>
+                                
+                                <!-- Metadados -->
+                                <div class="video-meta">
+                                    <span>
+                                        <i class="fas fa-calendar me-1"></i>
+                                        {{ treinamento.data_publicacao|date:"d/m/Y" }}
+                                    </span>
+                                    <span class="badge bg-success">Ativo</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Modal com Informações Detalhadas -->
+                    <div class="modal fade" id="modalInfo{{ categoria_id }}{{ forloop.counter }}" tabindex="-1">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">
+                                        <i class="fas fa-info-circle me-2"></i>{{ treinamento.titulo }}
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" title="Fechar"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            {% if treinamento.get_thumbnail_url %}
+                                                <img src="{{ treinamento.get_thumbnail_url }}" 
+                                                     class="img-fluid rounded mb-3" 
+                                                     alt="Thumbnail do vídeo">
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-md-8">
+                                            <h6>📝 Descrição Completa:</h6>
+                                            <p>{{ treinamento.descricao }}</p>
+                                            
+                                            <h6>📅 Informações:</h6>
+                                            <ul class="list-unstyled">
+                                                <li><strong>Categoria:</strong> {{ categoria_data.categoria.nome }}</li>
+                                                {% if categoria_data.categoria.descricao %}
+                                                    <li><strong>Sobre a categoria:</strong> {{ categoria_data.categoria.descricao }}</li>
+                                                {% endif %}
+                                                <li><strong>Publicado em:</strong> {{ treinamento.data_publicacao|date:"d/m/Y às H:i" }}</li>
+                                                <li><strong>Status:</strong> 
+                                                    <span class="badge bg-success">Ativo</span>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                        Fechar
+                                    </button>
+                                    <a href="{{ treinamento.url_video }}" 
+                                       target="_blank" 
+                                       class="btn btn-primary">
+                                        <i class="fab fa-youtube me-1"></i>Assistir no YouTube
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endfor %}
+{% else %}
+    <!-- Estado Vazio -->
+    <div class="card">
+        <div class="card-body no-trainings">
+            <i class="fas fa-video-slash"></i>
+            <h4>Nenhum treinamento disponível</h4>
+            <p class="mb-4">
+                No momento não há vídeos de treinamento disponíveis. 
+                Entre em contato com o administrador do sistema para mais informações.
+            </p>
+            <a href="{% url 'dashboard:dashboard' %}" class="btn btn-primary">
+                <i class="fas fa-arrow-left me-2"></i>Voltar ao Dashboard
+            </a>
+        </div>
+    </div>
+{% endif %}
+
+<!-- Rodapé Informativo -->
+<!-- <div class="row mt-5">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <h5 class="alert-heading">
+                <i class="fas fa-lightbulb me-2"></i>Dicas para Aproveitar os Treinamentos
+            </h5>
+            <ul class="mb-0">
+                <li><strong>Conexão:</strong> Certifique-se de ter uma boa conexão com a internet</li>
+                <li><strong>Anotações:</strong> Faça anotações durante os vídeos para fixar o conteúdo</li>
+                <li><strong>Prática:</strong> Aplique o conhecimento adquirido em suas visitas diárias</li>
+                <li><strong>Dúvidas:</strong> Entre em contato com o supervisor em caso de dúvidas</li>
+            </ul>
+        </div>
+    </div>
+</div> -->
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('📚 Página de treinamentos carregada');
+    console.log('🎥 Total de vídeos disponíveis: {{ total_treinamentos }}');
+    
+    // Adicionar log quando vídeos são clicados
+    document.querySelectorAll('iframe').forEach((iframe, index) => {
+        iframe.addEventListener('load', function() {
+            console.log(`✅ Vídeo ${index + 1} carregado com sucesso`);
+        });
+    });
+    
+    // Log de interações com botões
+    document.querySelectorAll('[data-bs-toggle="modal"]').forEach(button => {
+        button.addEventListener('click', function() {
+            const modalTarget = this.getAttribute('data-bs-target');
+            console.log(`📋 Modal aberto: ${modalTarget}`);
+        });
+    });
+});
+</script>
+{% endblock %}

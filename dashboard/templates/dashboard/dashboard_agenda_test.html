@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Sistema de Saúde</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .agenda-card { border: 3px solid #007bff !important; }
+        .debug-info { background: yellow; padding: 10px; border: 2px solid red; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid p-4">
+        <!-- Debug Info no Topo -->
+        <div class="debug-info mb-4">
+            <h2>🚨 DEBUG AGENDA 🚨</h2>
+            <p><strong>Visitas Hoje:</strong> {{ visitas_hoje|length }} item(s)</p>
+            <p><strong>Próximas Visitas:</strong> {{ proximas_visitas|length }} item(s)</p>
+            <p><strong>Template:</strong> dashboard_agenda_test.html</p>
+            <p><strong>Data/Hora:</strong> {% now "Y-m-d H:i:s" %}</p>
+        </div>
+        
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h1 class="text-center">🏥 Sistema de Saúde Pública - Dashboard</h1>
+            </div>
+        </div>
+        
+        <!-- Cards das Estatísticas -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-users fa-2x mb-2"></i>
+                        <h4>{{ stats.total_cidadaos_cadastrados|default:0 }}</h4>
+                        <p>Cidadãos</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-calendar-check fa-2x mb-2"></i>
+                        <h4>{{ stats.total_atendimentos_hoje|default:0 }}</h4>
+                        <p>Hoje</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-clock fa-2x mb-2"></i>
+                        <h4>{{ anamneses_pendentes|length }}</h4>
+                        <p>Pendentes</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-danger text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                        <h4>{{ stats.casos_risco_alto_hoje|default:0 }}</h4>
+                        <p>Alto Risco</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Seção Principal: 3 Colunas -->
+        <div class="row">
+            <!-- Alertas Urgentes -->
+            <div class="col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-exclamation-circle me-2"></i>Alertas Urgentes
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if alertas_urgentes %}
+                            {% for alerta in alertas_urgentes %}
+                                <div class="alert alert-danger p-2 mb-2">
+                                    <strong>{{ alerta.cidadao.nome }}</strong><br>
+                                    <small>{{ alerta.descricao }}</small>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center p-3">
+                                <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+                                <p class="text-muted">Nenhum alerta urgente no momento.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Anamneses Pendentes -->
+            <div class="col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-warning text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-hourglass-half me-2"></i>Anamneses Pendentes
+                            <span class="badge bg-light text-dark ms-2">{{ anamneses_pendentes|length }}</span>
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if anamneses_pendentes %}
+                            {% for anamnese in anamneses_pendentes|slice:":5" %}
+                                <div class="border-bottom py-2">
+                                    <strong>{{ anamnese.cidadao.nome }}</strong><br>
+                                    <small class="text-muted">{{ anamnese.criado_em|timesince }} atrás</small><br>
+                                    <span class="badge bg-warning">{{ anamnese.get_triagem_risco_display }}</span>
+                                </div>
+                            {% endfor %}
+                            {% if anamneses_pendentes|length > 5 %}
+                                <div class="text-center mt-3">
+                                    <small class="text-muted">+ {{ anamneses_pendentes|length|add:"-5" }} mais...</small>
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="text-center p-3">
+                                <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+                                <p class="text-muted">Nenhuma anamnese pendente.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 🔥 AGENDA DE VISITAS - TERCEIRA COLUNA 🔥 -->
+            <div class="col-lg-4 mb-4">
+                <div class="card h-100 agenda-card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-calendar-alt me-2"></i>📅 AGENDA DE VISITAS
+                            {% if visitas_hoje %}
+                                <span class="badge bg-light text-primary ms-2">{{ visitas_hoje|length }}</span>
+                            {% endif %}
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Visitas de Hoje -->
+                        <div class="mb-4">
+                            <h6 class="text-primary border-bottom pb-2">
+                                <i class="fas fa-calendar-day me-2"></i>HOJE ({{ visitas_hoje|length }})
+                            </h6>
+                            {% if visitas_hoje %}
+                                {% for visita in visitas_hoje %}
+                                    <div class="alert alert-success p-2 mb-2">
+                                        <div class="d-flex justify-content-between">
+                                            <strong>{{ visita.cidadao.nome }}</strong>
+                                            <small class="text-muted">{{ visita.data_visita|date:"H:i" }}</small>
+                                        </div>
+                                        <small>{{ visita.get_motivo_display }}</small><br>
+                                        <span class="badge bg-success">{{ visita.get_status_display }}</span>
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="alert alert-info p-2">
+                                    <i class="fas fa-calendar-check me-2"></i>
+                                    Nenhuma visita agendada para hoje.
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Próximas Visitas -->
+                        {% if proximas_visitas %}
+                            <div class="border-top pt-3">
+                                <h6 class="text-info">
+                                    <i class="fas fa-calendar-plus me-2"></i>PRÓXIMAS ({{ proximas_visitas|length }})
+                                </h6>
+                                {% for visita in proximas_visitas %}
+                                    <div class="d-flex justify-content-between small mb-2 p-2 bg-light rounded">
+                                        <strong>{{ visita.cidadao.nome }}</strong>
+                                        <span class="text-muted">{{ visita.data_visita|date:"d/m H:i" }}</span>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Botões de Ação -->
+                        <div class="text-center mt-3 border-top pt-3">
+                            <button class="btn btn-primary btn-sm me-2">
+                                <i class="fas fa-plus"></i> Nova Visita
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-calendar"></i> Calendário
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TESTE AGENDA SIMPLES</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .debug { background: yellow; padding: 10px; margin: 10px; border: 2px solid red; }
+        .visita { background: lightblue; padding: 5px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🚨 TESTE DE AGENDA - SUPER SIMPLES 🚨</h1>
+    
+    <div class="debug">
+        <h2>DEBUG INFO:</h2>
+        <p>visitas_hoje: {{ visitas_hoje|length }} itens</p>
+        <p>proximas_visitas: {{ proximas_visitas|length }} itens</p>
+        <p>Context keys: {{ context.keys }}</p>
+    </div>
+    
+    <h2>VISITAS DE HOJE:</h2>
+    {% if visitas_hoje %}
+        {% for visita in visitas_hoje %}
+            <div class="visita">
+                <strong>{{ visita.cidadao.nome }}</strong> - {{ visita.data_visita|date:"H:i" }}
+                <br>Status: {{ visita.get_status_display }}
+                <br>Motivo: {{ visita.get_motivo_display }}
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>❌ NENHUMA VISITA HOJE</p>
+    {% endif %}
+    
+    <h2>PRÓXIMAS VISITAS:</h2>
+    {% if proximas_visitas %}
+        {% for visita in proximas_visitas %}
+            <div class="visita">
+                <strong>{{ visita.cidadao.nome }}</strong> - {{ visita.data_visita|date:"d/m/Y H:i" }}
+                <br>Status: {{ visita.get_status_display }}
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>❌ NENHUMA PRÓXIMA VISITA</p>
+    {% endif %}
+    
+    <hr>
+    <p><strong>Template:</strong> teste_agenda_simples.html</p>
+    <p><strong>Hora:</strong> {% now "d/m/Y H:i:s" %}</p>
+</body>
+</html>

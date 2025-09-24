@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid mt-3">
+        <h1 class="mb-4">🔍 DEBUG: Agenda Dashboard</h1>
+        
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card border-danger">
+                    <div class="card-header bg-danger text-white">
+                        <h5><i class="fas fa-exclamation-circle"></i> Alertas (Debug)</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Esta seção deveria ter alertas</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card border-warning">
+                    <div class="card-header bg-warning text-white">
+                        <h5><i class="fas fa-hourglass-half"></i> Anamneses ({{ anamneses_pendentes|length }})</h5>
+                    </div>
+                    <div class="card-body">
+                        {% for anamnese in anamneses_pendentes|slice:":3" %}
+                            <p class="small">{{ anamnese.cidadao.nome }}</p>
+                        {% empty %}
+                            <p>Nenhuma anamnese pendente</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card border-primary">
+                    <div class="card-header bg-primary text-white">
+                        <h5><i class="fas fa-calendar-alt"></i> AGENDA 
+                        {% if visitas_hoje %}
+                            <span class="badge bg-light text-primary">({{ visitas_hoje|length }})</span>
+                        {% endif %}
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <h6>📅 Hoje:</h6>
+                        {% if visitas_hoje %}
+                            {% for visita in visitas_hoje %}
+                                <div class="alert alert-success p-2 mb-2">
+                                    <strong>{{ visita.cidadao.nome }}</strong><br>
+                                    <small>{{ visita.data_visita|date:"H:i" }} - {{ visita.get_status_display }}</small>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="alert alert-info p-2">
+                                Nenhuma visita hoje
+                            </div>
+                        {% endif %}
+                        
+                        <hr>
+                        
+                        <h6>🗓️ Próximas:</h6>
+                        {% if proximas_visitas %}
+                            {% for visita in proximas_visitas %}
+                                <div class="alert alert-light p-2 mb-1">
+                                    <strong>{{ visita.cidadao.nome }}</strong><br>
+                                    <small>{{ visita.data_visita|date:"d/m H:i" }}</small>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="alert alert-info p-2">
+                                Nenhuma próxima visita
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <h4>📊 Debug Info:</h4>
+                    <p><strong>Visitas Hoje:</strong> {{ visitas_hoje|length }}</p>
+                    <p><strong>Próximas Visitas:</strong> {{ proximas_visitas|length }}</p>
+                    <p><strong>Anamneses Pendentes:</strong> {{ anamneses_pendentes|length }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

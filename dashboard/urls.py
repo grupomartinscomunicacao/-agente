@@ -11,6 +11,16 @@ urlpatterns = [
     path('', views.DashboardView.as_view(), name='dashboard'),
     path('dashboard/', views.DashboardView.as_view(), name='dashboard_alt'),  # URL alternativa
     
+    # Agenda de Visitas
+    path('agenda/', views.AgendaView.as_view(), name='agenda'),
+    
+    # Treinamentos
+    path('treinamentos/', views.TreinamentosView.as_view(), name='treinamentos'),
+    
+    # Teste da agenda
+    path('teste/', views.DashboardTesteView.as_view(), name='dashboard_teste'),
+    path('debug/', views.DashboardDebugView.as_view(), name='dashboard_debug'),
+    
     # Coleta de dados
     path('coleta/', views.ColetaDadosView.as_view(), name='coleta_dados'),
     path('coleta/cidadao/', views.CadastroCidadaoView.as_view(), name='cadastro_cidadao'),
@@ -48,6 +58,15 @@ urlpatterns = [
     path('ajax/validar-cpf/', views.ValidarCPFAjaxView.as_view(), name='validar_cpf_ajax'),
     path('ajax/gerar-anamnese/', views.GerarAnamneseAjaxView.as_view(), name='gerar_anamnese_ajax'),
     path('ajax/processar-todas-anamneses/', views.ProcessarTodasAnamnesessAjaxView.as_view(), name='processar_todas_anamneses_ajax'),
+    
+    # APIs da Agenda
+    path('api/agenda/eventos/', views.AgendaEventosAPIView.as_view(), name='agenda_eventos_api'),
+    path('api/agenda/criar/', views.CriarVisitaView.as_view(), name='criar_visita_api'),
+    path('api/agenda/editar/<int:visita_id>/', views.EditarVisitaView.as_view(), name='editar_visita_api'),
+    path('api/agenda/excluir/<int:visita_id>/', views.ExcluirVisitaView.as_view(), name='excluir_visita_api'),
+    path('api/agenda/confirmar/<int:visita_id>/', views.ConfirmarVisitaView.as_view(), name='confirmar_visita_api'),
+    path('api/agenda/visitas-hoje/', views.VisitasHojeView.as_view(), name='visitas_hoje_api'),
+    path('api/agenda/cidadaos/', views.CidadaosParaAgendamentoView.as_view(), name='cidadaos_agendamento_api'),
     
     # Teste (desenvolvimento)
     path('test-nova-anamnese/', views.TestNovaAnamneseView.as_view(), name='test_nova_anamnese'),

@@ -22,7 +22,8 @@ logger = logging.getLogger(__name__)
 from cidadaos.models import Cidadao, ContatoEmergencia
 from saude_dados.models import DadosSaude
 from anamneses.models import Anamnese, AlertaSaude
-from dashboard.models import EstatisticaTempoReal, RelatorioSaude
+from dashboard.models import EstatisticaTempoReal, RelatorioSaude, VisitaAgendada, Treinamento
+from dashboard.forms import VisitaAgendadaForm, FiltroVisitasForm
 from api.serializers import ColetaDadosSerializer, DadosSaudeSerializer
 from utils.validators import ValidadorDados, NormalizadorTexto
 from utils.tasks import gerar_anamnese_automatica
@@ -37,26 +38,102 @@ class DashboardView(TemplateView):
         context = super().get_context_data(**kwargs)
         hoje = timezone.now().date()
 
-        # Tenta obter estatísticas, com fallback
-        try:
-            stats = EstatisticaTempoReal.get_current()
-            stats.atualizar_contadores()
-        except Exception as e:
-            logger.error(f"Erro ao obter estatísticas: {e}")
-            stats = self._get_fallback_stats()
+        # Calcular estatísticas reais do banco de dados
+        stats = self._calculate_real_stats()
         
         # Busca dados para os cards e listas
         context.update({
             'stats': stats,
             'alertas_urgentes': self._get_alertas_urgentes(),
             'anamneses_pendentes': self._get_anamneses_pendentes(),
+            'alertas_recentes': self._get_alertas_recentes(),
+            'treinamentos_recentes': self._get_treinamentos_recentes(),
         })
 
-        # Prepara dados para os gráficos
-        stats.atendimentos_por_dia = self._get_atendimentos_por_dia_data()
-        stats.distribuicao_risco_hoje = self._get_distribuicao_risco_data(hoje)
+        # Dados para o minimapa de risco
+        context['dados_mapa_risco'] = self._get_dados_mapa_risco()
         
         return context
+
+    def _calculate_real_stats(self):
+        """Calcula estatísticas reais do banco de dados."""
+        try:
+            # Contar dados reais do banco
+            total_cidadaos = Cidadao.objects.count()  # Todos os cidadãos cadastrados
+            
+            # Cidadãos com dados de saúde (que possuem alguma condição médica)
+            cidadaos_com_dados_saude = Cidadao.objects.filter(
+                Q(possui_hipertensao=True) | 
+                Q(possui_diabetes=True) | 
+                Q(possui_doenca_cardiaca=True) |
+                Q(possui_doenca_renal=True) |
+                Q(possui_asma=True) |
+                Q(possui_depressao=True) |
+                Q(medicamentos_continuo__isnull=False) |
+                Q(alergias_conhecidas__isnull=False)
+            ).count()
+            
+            # Visitas pendentes (agendadas)
+            visitas_pendentes = VisitaAgendada.objects.filter(
+                status='agendada'
+            ).count()
+            
+            # Anamneses completas (concluídas ou qualquer status não pendente)
+            anamneses_completas = Anamnese.objects.filter(
+                status__in=['concluida', 'aprovada', 'finalizada']
+            ).count()
+            # Se não houver com esses status, contar todas as não pendentes
+            if anamneses_completas == 0:
+                anamneses_completas = Anamnese.objects.exclude(status='pendente').count()
+            
+            # Total de bairros únicos (removendo vazios e duplicatas)
+            total_bairros = Cidadao.objects.values_list('bairro', flat=True).exclude(
+                Q(bairro__isnull=True) | Q(bairro__exact='')
+            ).distinct().count()
+            
+            # Dados extras para cards adicionais
+            visitas_realizadas = VisitaAgendada.objects.filter(status='realizada').count()
+            anamneses_pendentes = Anamnese.objects.filter(status='pendente').count()
+            total_visitas = VisitaAgendada.objects.count()
+            total_anamneses = Anamnese.objects.count()
+            
+            # Casos de risco alto (tentar do módulo geolocation)
+            try:
+                from geolocation.models import LocalizacaoSaude
+                casos_risco_alto = LocalizacaoSaude.objects.filter(
+                    nivel_risco__in=['alto', 'critico']
+                ).count()
+            except:
+                # Fallback: calcular baseado em condições de saúde graves
+                casos_risco_alto = Cidadao.objects.filter(
+                    Q(possui_doenca_cardiaca=True) | Q(possui_doenca_renal=True)
+                ).count()
+            
+            # Debug: imprimir valores calculados
+            logger.info(f"Stats calculadas: cidadãos={total_cidadaos}, com_saude={cidadaos_com_dados_saude}, "
+                       f"visitas_pendentes={visitas_pendentes}, anamneses_completas={anamneses_completas}, "
+                       f"bairros={total_bairros}")
+            
+            # Criar objeto de estatísticas
+            return type('Stats', (), {
+                'total_cidadaos_cadastrados': total_cidadaos,
+                'cidadaos_com_dados_saude': cidadaos_com_dados_saude,
+                'visitas_pendentes': visitas_pendentes,
+                'anamneses_completas': anamneses_completas,
+                'total_bairros': total_bairros,
+                # Dados extras
+                'visitas_realizadas': visitas_realizadas,
+                'casos_risco_alto_hoje': casos_risco_alto,
+                'total_anamneses_pendentes': anamneses_pendentes,
+                'total_visitas': total_visitas,
+                'total_anamneses': total_anamneses,
+                'ultima_atualizacao': timezone.now()
+            })()
+            
+        except Exception as e:
+            logger.error(f"Erro ao calcular estatísticas: {e}")
+            print(f"ERRO nas estatísticas: {e}")  # Debug adicional
+            return self._get_fallback_stats()
 
     def _get_fallback_stats(self):
         """Retorna um objeto de estatísticas vazio em caso de erro."""
@@ -66,7 +143,7 @@ class DashboardView(TemplateView):
         
         return type('Stats', (), {
             'total_cidadaos_cadastrados': Cidadao.objects.count(),
-            'total_atendimentos_hoje': Anamnese.objects.filter(criado_em__date=timezone.now().date()).count(),
+            'total_atendimentos_hoje': 0,  # Será implementado depois
             'total_anamneses_pendentes': Anamnese.objects.filter(status='pendente').count(),
             'casos_risco_alto_hoje': alto_risco,
             'ultima_atualizacao': timezone.now()
@@ -88,49 +165,209 @@ class DashboardView(TemplateView):
             logger.error(f"Erro ao buscar anamneses pendentes: {e}")
             return []
 
+    def _get_alertas_recentes(self):
+        """Retorna os 5 últimos registros de cidadãos com risco alto."""
+        try:
+            # Buscar alertas de saúde recentes com cidadãos de alto risco
+            alertas = AlertaSaude.objects.filter(
+                nivel_risco__in=['alto', 'critico']
+            ).select_related('cidadao').order_by('-data_criacao')[:5]
+            
+            return alertas
+        except Exception as e:
+            logger.error(f"Erro ao buscar alertas recentes: {e}")
+            return []
+
+    def _get_dados_mapa_risco(self):
+        """Retorna dados geográficos para o minimapa de risco."""
+        try:
+            from geolocation.models import LocalizacaoSaude
+            
+            # Buscar localizações com dados de risco
+            localizacoes = LocalizacaoSaude.objects.select_related('cidadao').filter(
+                latitude__isnull=False,
+                longitude__isnull=False
+            ).exclude(
+                latitude=0.0,
+                longitude=0.0
+            )
+            
+            dados_mapa = []
+            for loc in localizacoes:
+                # Definir cor baseada no nível de risco
+                if loc.nivel_risco in ['alto', 'critico']:
+                    cor = '#dc3545'  # Vermelho
+                elif loc.nivel_risco == 'medio':
+                    cor = '#ffc107'  # Amarelo
+                else:
+                    cor = '#28a745'  # Verde
+                
+                dados_mapa.append({
+                    'lat': float(loc.latitude),
+                    'lng': float(loc.longitude),
+                    'cor': cor,
+                    'risco': loc.nivel_risco,
+                    'cidadao': loc.cidadao.nome if loc.cidadao else 'Não identificado',
+                    'bairro': loc.cidadao.bairro if loc.cidadao and loc.cidadao.bairro else 'Não informado'
+                })
+            
+            return dados_mapa[:50]  # Limitar a 50 pontos para performance
+            
+        except Exception as e:
+            logger.error(f"Erro ao buscar dados do mapa de risco: {e}")
+            return []
+
+    def _get_treinamentos_recentes(self):
+        """Retorna os 3 vídeos mais recentes ativos."""
+        try:
+            from dashboard.models import Treinamento
+            return Treinamento.objects.filter(
+                ativo=True
+            ).select_related('categoria').order_by('-data_publicacao')[:3]
+        except Exception as e:
+            logger.error(f"Erro ao buscar treinamentos recentes: {e}")
+            return []
+
+    def _get_visitas_hoje(self):
+        """Retorna visitas agendadas para hoje."""
+        try:
+            hoje = timezone.now().date()
+            return VisitaAgendada.objects.filter(
+                data_visita__date=hoje,
+                status__in=['agendada', 'confirmada']
+            ).select_related('cidadao').order_by('data_visita')[:5]
+        except Exception as e:
+            logger.error(f"Erro ao buscar visitas de hoje: {e}")
+            return []
+
+    def _get_proximas_visitas(self):
+        """Retorna próximas 5 visitas dos próximos dias."""
+        try:
+            amanha = timezone.now().date() + timedelta(days=1)
+            uma_semana = timezone.now().date() + timedelta(days=7)
+            return VisitaAgendada.objects.filter(
+                data_visita__date__range=[amanha, uma_semana],
+                status__in=['agendada', 'confirmada']
+            ).select_related('cidadao').order_by('data_visita')[:5]
+        except Exception as e:
+            logger.error(f"Erro ao buscar próximas visitas: {e}")
+            return []
+
     def _get_atendimentos_por_dia_data(self):
         """Retorna dados de atendimentos dos últimos 7 dias para o gráfico."""
-        labels, data = [], []
         try:
-            end_date = timezone.now()
-            start_date = end_date - timedelta(days=6)
-            
-            atendimentos = (
-                Anamnese.objects
-                .filter(criado_em__range=[start_date, end_date])
-                .values('criado_em__date')
-                .annotate(count=Count('id'))
-                .order_by('criado_em__date')
-            )
-            
-            atendimentos_dict = {item['criado_em__date']: item['count'] for item in atendimentos}
-            
+            dados = []
             for i in range(7):
-                day = start_date.date() + timedelta(days=i)
-                labels.append(day.strftime('%d/%m'))
-                data.append(atendimentos_dict.get(day, 0))
+                dia = timezone.now().date() - timedelta(days=i)
+                count = Anamnese.objects.filter(criado_em__date=dia).count()
+                dados.append({
+                    'x': dia.strftime('%Y-%m-%d'),
+                    'y': count
+                })
+            return list(reversed(dados))
         except Exception as e:
-            logger.error(f"Erro ao gerar dados de atendimentos por dia: {e}")
-
-        return {'labels': labels, 'data': data}
+            logger.error(f"Erro ao buscar dados de atendimentos: {e}")
+            return []
 
     def _get_distribuicao_risco_data(self, hoje):
-        """Retorna a distribuição de risco de hoje para o gráfico."""
-        dist_risco = {'alto': 0, 'medio': 0, 'baixo': 0}
+        """Retorna distribuição de risco para o gráfico."""
         try:
-            riscos = (
-                Anamnese.objects
-                .filter(criado_em__date=hoje)
-                .values('triagem_risco')
-                .annotate(count=Count('id'))
-            )
-            for risco in riscos:
-                if risco['triagem_risco'] in dist_risco:
-                    dist_risco[risco['triagem_risco']] = risco['count']
+            from geolocation.models import LocalizacaoSaude
+            dados = {
+                'baixo': LocalizacaoSaude.objects.filter(nivel_risco='baixo').count(),
+                'medio': LocalizacaoSaude.objects.filter(nivel_risco='medio').count(),
+                'alto': LocalizacaoSaude.objects.filter(nivel_risco='alto').count(),
+                'critico': LocalizacaoSaude.objects.filter(nivel_risco='critico').count(),
+            }
+            return dados
         except Exception as e:
-            logger.error(f"Erro ao gerar dados de distribuição de risco: {e}")
-            
-        return dist_risco
+            logger.error(f"Erro ao buscar distribuição de risco: {e}")
+            return {'baixo': 0, 'medio': 0, 'alto': 0, 'critico': 0}
+
+
+class DashboardTesteView(TemplateView):
+    """Dashboard de teste para agenda."""
+    template_name = 'dashboard/dashboard_teste.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({
+            'visitas_hoje': self._get_visitas_hoje(),
+            'proximas_visitas': self._get_proximas_visitas(),
+        })
+        return context
+    
+    def _get_visitas_hoje(self):
+        """Retorna visitas agendadas para hoje."""
+        try:
+            hoje = timezone.now().date()
+            return VisitaAgendada.objects.filter(
+                data_visita__date=hoje,
+                status__in=['agendada', 'confirmada']
+            ).select_related('cidadao').order_by('data_visita')[:5]
+        except Exception as e:
+            logger.error(f"Erro ao buscar visitas de hoje: {e}")
+            return []
+
+    def _get_proximas_visitas(self):
+        """Retorna próximas 5 visitas dos próximos dias."""
+        try:
+            amanha = timezone.now().date() + timedelta(days=1)
+            uma_semana = timezone.now().date() + timedelta(days=7)
+            return VisitaAgendada.objects.filter(
+                data_visita__date__range=[amanha, uma_semana],
+                status__in=['agendada', 'confirmada']
+            ).select_related('cidadao').order_by('data_visita')[:5]
+        except Exception as e:
+            logger.error(f"Erro ao buscar próximas visitas: {e}")
+            return []
+
+
+class DashboardDebugView(TemplateView):
+    """Dashboard de debug para agenda."""
+    template_name = 'dashboard/debug_simples.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({
+            'visitas_hoje': self._get_visitas_hoje(),
+            'proximas_visitas': self._get_proximas_visitas(),
+            'anamneses_pendentes': self._get_anamneses_pendentes(),
+        })
+        return context
+    
+    def _get_visitas_hoje(self):
+        """Retorna visitas agendadas para hoje."""
+        try:
+            hoje = timezone.now().date()
+            return VisitaAgendada.objects.filter(
+                data_visita__date=hoje,
+                status__in=['agendada', 'confirmada']
+            ).select_related('cidadao').order_by('data_visita')[:5]
+        except Exception as e:
+            logger.error(f"Erro ao buscar visitas de hoje: {e}")
+            return []
+
+    def _get_proximas_visitas(self):
+        """Retorna próximas 5 visitas dos próximos dias."""
+        try:
+            amanha = timezone.now().date() + timedelta(days=1)
+            uma_semana = timezone.now().date() + timedelta(days=7)
+            return VisitaAgendada.objects.filter(
+                data_visita__date__range=[amanha, uma_semana],
+                status__in=['agendada', 'confirmada']
+            ).select_related('cidadao').order_by('data_visita')[:5]
+        except Exception as e:
+            logger.error(f"Erro ao buscar próximas visitas: {e}")
+            return []
+
+    def _get_anamneses_pendentes(self):
+        """Retorna as 10 anamneses pendentes mais recentes."""
+        try:
+            return Anamnese.objects.filter(status='pendente').order_by('-criado_em')[:10]
+        except Exception as e:
+            logger.error(f"Erro ao buscar anamneses pendentes: {e}")
+            return []
 
 
 class ColetaDadosView(LoginRequiredMixin, TemplateView):
@@ -1132,3 +1369,531 @@ class TestNovaAnamneseView(TemplateView):
     View simples para testar a funcionalidade de nova anamnese.
     """
     template_name = 'test_nova_anamnese.html'
+
+
+# ====================================================================
+# VIEWS PARA AGENDA DE VISITAS
+# ====================================================================
+
+from datetime import date, datetime, timedelta
+
+
+class AgendaEventosAPIView(View):
+    """
+    API para eventos do calendário (formato FullCalendar.js).
+    """
+    def get(self, request):
+        """Retorna eventos para o calendário."""
+        try:
+            # Parâmetros de filtro
+            start = request.GET.get('start')
+            end = request.GET.get('end')
+            
+            # Filtrar visitas
+            visitas = VisitaAgendada.objects.all()
+            
+            if start:
+                visitas = visitas.filter(data_visita__gte=start)
+            if end:
+                visitas = visitas.filter(data_visita__lte=end)
+            
+            # Converter para formato FullCalendar
+            eventos = []
+            for visita in visitas:
+                eventos.append({
+                    'id': str(visita.id),
+                    'title': f"{visita.cidadao.nome} - {visita.get_motivo_display()}",
+                    'start': visita.data_visita.isoformat(),
+                    'backgroundColor': visita.cor_status,
+                    'borderColor': visita.cor_status,
+                    'textColor': '#fff' if visita.status != 'agendada' else '#000',
+                    'extendedProps': {
+                        'cidadao_id': str(visita.cidadao.id),
+                        'cidadao_nome': visita.cidadao.nome,
+                        'motivo': visita.get_motivo_display(),
+                        'motivo_codigo': visita.motivo,
+                        'status': visita.get_status_display(),
+                        'status_codigo': visita.status,
+                        'observacoes': visita.observacoes or '',
+                        'pode_editar': visita.pode_ser_editada(),
+                        'pode_cancelar': visita.pode_ser_cancelada(),
+                        'eh_hoje': visita.eh_hoje,
+                        'eh_atrasada': visita.eh_atrasada,
+                    }
+                })
+            
+            return JsonResponse(eventos, safe=False)
+            
+        except Exception as e:
+            logger.error(f"Erro na API de eventos: {e}")
+            return JsonResponse({'error': str(e)}, status=500)
+
+
+class CriarVisitaView(View):
+    """
+    View para criar nova visita agendada.
+    """
+    def post(self, request):
+        """Cria nova visita."""
+        try:
+            data = json.loads(request.body)
+            
+            # Validar campos obrigatórios
+            campos_obrigatorios = ['cidadao_id', 'data_visita', 'motivo']
+            for campo in campos_obrigatorios:
+                if not data.get(campo):
+                    return JsonResponse({
+                        'success': False,
+                        'error': f'Campo {campo} é obrigatório'
+                    }, status=400)
+            
+            # Buscar cidadão
+            try:
+                cidadao = Cidadao.objects.get(id=data['cidadao_id'])
+            except Cidadao.DoesNotExist:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Cidadão não encontrado'
+                }, status=404)
+            
+            # Converter data
+            try:
+                data_visita = datetime.fromisoformat(data['data_visita'].replace('Z', '+00:00'))
+            except ValueError:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Formato de data inválido'
+                }, status=400)
+            
+            # Verificar se não é no passado
+            if data_visita < timezone.now():
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Não é possível agendar visitas no passado'
+                }, status=400)
+            
+            # Verificar conflitos de horário
+            conflitos = VisitaAgendada.objects.filter(
+                agente=request.user,
+                data_visita__date=data_visita.date(),
+                data_visita__hour=data_visita.hour,
+                status__in=['agendada', 'confirmada']
+            ).exists()
+            
+            if conflitos:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Já existe uma visita agendada para este horário'
+                }, status=409)
+            
+            # Criar visita
+            visita = VisitaAgendada.objects.create(
+                cidadao=cidadao,
+                agente=request.user,
+                data_visita=data_visita,
+                motivo=data.get('motivo'),
+                observacoes=data.get('observacoes', ''),
+                criado_por=request.user
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Visita agendada com sucesso!',
+                'visita_id': str(visita.id),
+                'evento': {
+                    'id': str(visita.id),
+                    'title': f"{visita.cidadao.nome} - {visita.get_motivo_display()}",
+                    'start': visita.data_visita.isoformat(),
+                    'backgroundColor': visita.cor_status,
+                    'borderColor': visita.cor_status,
+                }
+            })
+            
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'success': False,
+                'error': 'Dados JSON inválidos'
+            }, status=400)
+        except Exception as e:
+            logger.error(f"Erro ao criar visita: {e}")
+            return JsonResponse({
+                'success': False,
+                'error': f'Erro interno: {str(e)}'
+            }, status=500)
+
+
+class EditarVisitaView(View):
+    """
+    View para editar visita existente.
+    """
+    def put(self, request, visita_id):
+        """Edita visita existente."""
+        try:
+            visita = get_object_or_404(VisitaAgendada, id=visita_id)
+            
+            # Verificar permissão
+            if not visita.pode_ser_editada():
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Esta visita não pode mais ser editada'
+                }, status=403)
+            
+            data = json.loads(request.body)
+            
+            # Atualizar campos
+            if 'data_visita' in data:
+                try:
+                    nova_data = datetime.fromisoformat(data['data_visita'].replace('Z', '+00:00'))
+                    if nova_data < timezone.now():
+                        return JsonResponse({
+                            'success': False,
+                            'error': 'Não é possível agendar visitas no passado'
+                        }, status=400)
+                    visita.data_visita = nova_data
+                except ValueError:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Formato de data inválido'
+                    }, status=400)
+            
+            if 'motivo' in data:
+                visita.motivo = data['motivo']
+            
+            if 'observacoes' in data:
+                visita.observacoes = data['observacoes']
+            
+            if 'status' in data:
+                visita.status = data['status']
+            
+            visita.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Visita atualizada com sucesso!'
+            })
+            
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'success': False,
+                'error': 'Dados JSON inválidos'
+            }, status=400)
+        except Exception as e:
+            logger.error(f"Erro ao editar visita: {e}")
+            return JsonResponse({
+                'success': False,
+                'error': f'Erro interno: {str(e)}'
+            }, status=500)
+
+
+class ConfirmarVisitaView(LoginRequiredMixin, View):
+    """
+    View para confirmar visita como realizada.
+    """
+    def post(self, request, visita_id):
+        """Confirma visita como realizada."""
+        try:
+            visita = get_object_or_404(VisitaAgendada, id=visita_id)
+            
+            # Atualizar status
+            visita.status = 'realizada'
+            visita.data_confirmacao = timezone.now()
+            visita.confirmado_por = request.user
+            visita.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Visita confirmada como realizada!',
+                'novo_status': visita.get_status_display()
+            })
+            
+        except Exception as e:
+            logger.error(f"Erro ao confirmar visita: {e}")
+            return JsonResponse({
+                'success': False,
+                'error': f'Erro interno: {str(e)}'
+            }, status=500)
+
+
+class ExcluirVisitaView(View):
+    """
+    View para excluir visita.
+    """
+    def delete(self, request, visita_id):
+        """Exclui visita."""
+        try:
+            visita = get_object_or_404(VisitaAgendada, id=visita_id)
+            
+            # Verificar se pode ser cancelada
+            if not visita.pode_ser_cancelada():
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Esta visita não pode mais ser cancelada'
+                }, status=403)
+            
+            visita.status = 'cancelada'
+            visita.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Visita cancelada com sucesso!'
+            })
+            
+        except Exception as e:
+            logger.error(f"Erro ao cancelar visita: {e}")
+            return JsonResponse({
+                'success': False,
+                'error': f'Erro interno: {str(e)}'
+            }, status=500)
+
+
+class VisitasHojeView(View):
+    """
+    API para visitas agendadas para hoje.
+    """
+    def get(self, request):
+        """Retorna visitas de hoje."""
+        try:
+            hoje = timezone.now().date()
+            
+            visitas_hoje = VisitaAgendada.objects.filter(
+                data_visita__date=hoje,
+                status__in=['agendada', 'confirmada']
+            ).select_related('cidadao').order_by('data_visita')
+            
+            visitas_data = []
+            for visita in visitas_hoje:
+                visitas_data.append({
+                    'id': str(visita.id),
+                    'cidadao_nome': visita.cidadao.nome,
+                    'hora': visita.data_visita.strftime('%H:%M'),
+                    'motivo': visita.get_motivo_display(),
+                    'status': visita.get_status_display(),
+                    'endereco': visita.cidadao.endereco,
+                    'telefone': visita.cidadao.telefone,
+                    'eh_atrasada': visita.eh_atrasada,
+                })
+            
+            return JsonResponse({
+                'visitas': visitas_data,
+                'total': len(visitas_data)
+            })
+            
+        except Exception as e:
+            logger.error(f"Erro ao buscar visitas de hoje: {e}")
+            return JsonResponse({'error': str(e)}, status=500)
+
+
+class CidadaosParaAgendamentoView(View):
+    """
+    API para buscar cidadãos disponíveis para agendamento.
+    """
+    def get(self, request):
+        """Retorna cidadãos para agendamento."""
+        try:
+            termo = request.GET.get('q', '').strip()
+            
+            cidadaos = Cidadao.objects.all()
+            
+            if termo:
+                cidadaos = cidadaos.filter(
+                    Q(nome__icontains=termo) |
+                    Q(cpf__icontains=termo) |
+                    Q(telefone__icontains=termo)
+                )
+            
+            cidadaos = cidadaos[:20]  # Limitar resultados
+            
+            resultados = []
+            for cidadao in cidadaos:
+                resultados.append({
+                    'id': str(cidadao.id),
+                    'nome': cidadao.nome,
+                    'cpf': cidadao.cpf,
+                    'idade': cidadao.idade,
+                    'telefone': cidadao.telefone,
+                    'endereco': cidadao.endereco,
+                })
+            
+            return JsonResponse({
+                'cidadaos': resultados
+            })
+            
+        except Exception as e:
+            logger.error(f"Erro ao buscar cidadãos: {e}")
+            return JsonResponse({'error': str(e)}, status=500)
+
+
+class AgendaView(LoginRequiredMixin, TemplateView):
+    """Página específica da agenda de visitas."""
+    template_name = 'dashboard/agenda.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        hoje = timezone.now().date()
+        
+        try:
+            # Visitas de hoje
+            visitas_hoje = VisitaAgendada.objects.filter(
+                data_visita__date=hoje
+            ).select_related('cidadao').order_by('data_visita')
+            
+            # Próximas visitas (próximos 7 dias)
+            amanha = hoje + timedelta(days=1)
+            uma_semana = hoje + timedelta(days=7)
+            proximas_visitas = VisitaAgendada.objects.filter(
+                data_visita__date__range=[amanha, uma_semana]
+            ).select_related('cidadao').order_by('data_visita')
+            
+            # Visitas por status
+            visitas_confirmadas = VisitaAgendada.objects.filter(
+                status='confirmada',
+                data_visita__date__gte=hoje
+            ).select_related('cidadao')
+            
+            visitas_pendentes = VisitaAgendada.objects.filter(
+                status='agendada',
+                data_visita__date__gte=hoje
+            ).select_related('cidadao')
+            
+            # Formulário para nova visita
+            form_nova_visita = VisitaAgendadaForm()
+            
+            # Formulário de filtros
+            form_filtros = FiltroVisitasForm(self.request.GET)
+            
+            context.update({
+                'visitas_hoje': visitas_hoje,
+                'proximas_visitas': proximas_visitas,
+                'visitas_confirmadas': visitas_confirmadas,
+                'visitas_pendentes': visitas_pendentes,
+                'form_nova_visita': form_nova_visita,
+                'form_filtros': form_filtros,
+                'cidadaos': Cidadao.objects.filter(ativo=True).order_by('nome'),
+            })
+            
+        except Exception as e:
+            logger.error(f"Erro ao carregar dados da agenda: {e}")
+            context.update({
+                'visitas_hoje': [],
+                'proximas_visitas': [],
+                'visitas_confirmadas': [],
+                'visitas_pendentes': [],
+                'form_nova_visita': VisitaAgendadaForm(),
+                'form_filtros': FiltroVisitasForm(),
+                'cidadaos': [],
+            })
+        
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        """Processa criação de nova visita via formulário."""
+        try:
+            form = VisitaAgendadaForm(request.POST)
+            
+            if form.is_valid():
+                # Criar nova visita
+                visita = form.save(commit=False)
+                visita.agente = request.user
+                visita.criado_por = request.user
+                visita.save()
+                
+                if request.headers.get('Content-Type') == 'application/json':
+                    # Resposta AJAX
+                    return JsonResponse({
+                        'success': True,
+                        'message': 'Visita agendada com sucesso!',
+                        'visita_id': str(visita.id),
+                        'evento': {
+                            'id': str(visita.id),
+                            'title': f"{visita.cidadao.nome} - {visita.get_motivo_display()}",
+                            'start': visita.data_visita.isoformat(),
+                            'backgroundColor': visita.cor_status,
+                            'borderColor': visita.cor_status,
+                        }
+                    })
+                else:
+                    # Redirecionamento normal
+                    messages.success(request, 'Visita agendada com sucesso!')
+                    return redirect('dashboard:agenda')
+            else:
+                # Formulário com erros
+                if request.headers.get('Content-Type') == 'application/json':
+                    return JsonResponse({
+                        'success': False,
+                        'errors': form.errors
+                    }, status=400)
+                else:
+                    messages.error(request, 'Erro ao agendar visita. Verifique os dados.')
+                    
+        except Exception as e:
+            logger.error(f"Erro ao criar visita: {e}")
+            if request.headers.get('Content-Type') == 'application/json':
+                return JsonResponse({
+                    'success': False,
+                    'error': str(e)
+                }, status=500)
+            else:
+                messages.error(request, f'Erro interno: {str(e)}')
+        
+        # Em caso de erro, retorna página com formulário preenchido
+        return self.get(request, *args, **kwargs)
+
+
+class TreinamentosView(LoginRequiredMixin, TemplateView):
+    """
+    View para exibir os vídeos de treinamento disponíveis para os agentes.
+    
+    Organiza os treinamentos por categoria e permite filtrar por categoria específica.
+    Suporta filtro via parâmetro GET 'categoria'.
+    """
+    template_name = 'dashboard/treinamentos.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Filtro por categoria (via GET parameter)
+        categoria_filtro = self.request.GET.get('categoria')
+        
+        # Buscar apenas treinamentos ativos
+        treinamentos = Treinamento.objects.filter(ativo=True).select_related('categoria')
+        
+        # Aplicar filtro de categoria se especificado
+        if categoria_filtro and categoria_filtro.isdigit():
+            treinamentos = treinamentos.filter(categoria_id=categoria_filtro)
+        
+        # Buscar todas as categorias que têm treinamentos ativos
+        from .models import CategoriaTreinamento
+        categorias_com_treinamentos = CategoriaTreinamento.objects.filter(
+            treinamentos__ativo=True
+        ).distinct().order_by('ordem', 'nome')
+        
+        # Agrupar treinamentos por categoria
+        treinamentos_por_categoria = {}
+        for categoria in categorias_com_treinamentos:
+            categoria_treinamentos = treinamentos.filter(categoria=categoria).order_by('-data_publicacao')
+            if categoria_treinamentos.exists():
+                treinamentos_por_categoria[categoria.id] = {
+                    'categoria': categoria,
+                    'treinamentos': categoria_treinamentos,
+                    'total': categoria_treinamentos.count()
+                }
+        
+        # Categoria selecionada para o filtro
+        categoria_selecionada = None
+        if categoria_filtro and categoria_filtro.isdigit():
+            try:
+                categoria_selecionada = CategoriaTreinamento.objects.get(id=categoria_filtro)
+            except CategoriaTreinamento.DoesNotExist:
+                pass
+        
+        # Adicionar contexto
+        context.update({
+            'treinamentos_por_categoria': treinamentos_por_categoria,
+            'todas_categorias': categorias_com_treinamentos,
+            'categoria_selecionada': categoria_selecionada,
+            'total_treinamentos': treinamentos.count(),
+            'total_categorias': len(treinamentos_por_categoria),
+            'page_title': 'Treinamentos para Agentes de Saúde'
+        })
+        
+        return context

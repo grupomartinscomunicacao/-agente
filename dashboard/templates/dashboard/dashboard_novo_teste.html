@@ -1,0 +1,59 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}TESTE - Sistema de Saúde{% endblock %}
+
+{% block page_title %}
+    <div style="background: red; color: white; padding: 20px; font-size: 24px; text-align: center; border: 5px solid black; margin: 20px 0;">
+        🚨 NOVO TEMPLATE DE TESTE - VOCÊ DEVERIA VER ISSO! 🚨
+    </div>
+    <span class="page-title">Dashboard de Teste</span>
+{% endblock %}
+
+{% block content %}
+<div style="background: yellow; padding: 30px; margin: 20px; border: 10px solid blue;">
+    <h1 style="color: black; font-size: 48px; text-align: center;">
+        AGENDA DE TESTE SUPER SIMPLES
+    </h1>
+    
+    <div style="background: white; padding: 20px; margin: 20px; border: 5px solid green;">
+        <h2 style="color: red;">DADOS DA AGENDA:</h2>
+        <p style="font-size: 18px;"><strong>visitas_hoje:</strong> {{ visitas_hoje|length }} itens</p>
+        <p style="font-size: 18px;"><strong>proximas_visitas:</strong> {{ proximas_visitas|length }} itens</p>
+    </div>
+    
+    {% if visitas_hoje %}
+        <div style="background: lightgreen; padding: 20px; margin: 20px; border: 3px solid darkgreen;">
+            <h3 style="color: darkgreen;">VISITAS DE HOJE:</h3>
+            {% for visita in visitas_hoje %}
+                <div style="background: white; padding: 10px; margin: 10px; border: 2px solid blue;">
+                    <h4>{{ visita.cidadao.nome }}</h4>
+                    <p>Horário: {{ visita.data_visita|date:"H:i" }}</p>
+                    <p>Status: {{ visita.get_status_display }}</p>
+                    <p>Motivo: {{ visita.get_motivo_display }}</p>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div style="background: orange; padding: 20px; margin: 20px;">
+            <h3>❌ Nenhuma visita hoje</h3>
+        </div>
+    {% endif %}
+    
+    {% if proximas_visitas %}
+        <div style="background: lightblue; padding: 20px; margin: 20px; border: 3px solid darkblue;">
+            <h3 style="color: darkblue;">PRÓXIMAS VISITAS:</h3>
+            {% for visita in proximas_visitas %}
+                <div style="background: white; padding: 10px; margin: 10px; border: 2px solid purple;">
+                    <h4>{{ visita.cidadao.nome }}</h4>
+                    <p>Data/Hora: {{ visita.data_visita|date:"d/m/Y H:i" }}</p>
+                    <p>Status: {{ visita.get_status_display }}</p>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div style="background: orange; padding: 20px; margin: 20px;">
+            <h3>❌ Nenhuma próxima visita</h3>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

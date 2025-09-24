@@ -1,0 +1,30 @@
+# Configuração systemd para Gunicorn - maisagente.site
+# Localização: /etc/systemd/system/gunicorn.service
+
+[Unit]
+Description=Gunicorn daemon para maisagente.site
+Requires=gunicorn.socket
+After=network.target
+
+[Service]
+Type=notify
+# Usuario e grupo que vai rodar o serviço
+User=www-data
+Group=www-data
+# Diretório do projeto
+WorkingDirectory=/home/usuario/maisagente
+# Comando para iniciar o Gunicorn
+ExecStart=/home/usuario/maisagente/venv/bin/gunicorn \
+          --access-logfile - \
+          --workers 3 \
+          --bind unix:/run/gunicorn.sock \
+          health_system.wsgi:application
+# Reiniciar automaticamente em caso de falha
+Restart=always
+RestartSec=5
+# Variáveis de ambiente
+Environment="DJANGO_SETTINGS_MODULE=health_system.settings"
+Environment="PATH=/home/usuario/maisagente/venv/bin"
+
+[Install]
+WantedBy=multi-user.target

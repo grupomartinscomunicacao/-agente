@@ -1,0 +1,14 @@
+# Configuração do socket Gunicorn - maisagente.site
+# Localização: /etc/systemd/system/gunicorn.socket
+
+[Unit]
+Description=Socket do Gunicorn para maisagente.site
+
+[Socket]
+ListenStream=/run/gunicorn.sock
+# Permissões do socket
+SocketUser=www-data
+SocketMode=600
+
+[Install]
+WantedBy=sockets.target

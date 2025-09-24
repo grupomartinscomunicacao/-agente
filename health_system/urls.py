@@ -19,6 +19,10 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.shortcuts import render
+
+def debug_calendar(request):
+    return render(request, 'debug_calendar.html')
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -26,6 +30,7 @@ urlpatterns = [
     path("api/", include("api.urls")),
     path("lgpd/", include("lgpd.urls")),
     path("geolocation/", include("geolocation.urls")),  # URLs de geolocalização
+    path("debug-calendar/", debug_calendar, name="debug_calendar"),  # Debug do calendário
     path("", include("dashboard.urls")),  # Dashboard como raiz
 ]
 
